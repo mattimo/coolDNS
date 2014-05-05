@@ -12,7 +12,7 @@ type CoolDB struct {
 	c	*sql.DB
 }
 
-const createString string = `
+const createCoolDNS string = `
 CREATE TABLE if NOT EXISTS cooldns (
   hostname TEXT,
   myip TEXT,
@@ -22,6 +22,14 @@ CREATE TABLE if NOT EXISTS cooldns (
   mx TEXT,
   cnames TEXT,
 UNIQUE (hostname) ON CONFLICT REPLACE
+);
+`
+const createUsers string = `
+CREATE TABLE if NOT EXISTS users (
+  name TEXT,
+  salt VARCHAR(8),
+  key VARCHAR(32),
+UNIQUE (name) ON CONFLICT REPLACE
 ) 
 `
 
@@ -32,7 +40,12 @@ func createTable(db *sql.DB) error {
 		return err
 	}
 
-	_, err = tx.Exec(createString)
+	_, err = tx.Exec(createCoolDNS)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = tx.Exec(createUsers)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -82,6 +95,31 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 	return nil
 }
 
+func (db *CoolDB) SaveAuth(auth *Auth) error {
+	DNSDB.PutUser(auth)
+	db.Lock()
+	defer db.Unlock()
+
+	tx, err := db.c.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+	INSERT OR REPLACE INTO users
+	 (name, salt, key)
+	VALUES (?, ?, ?)
+		`,
+		auth.Name,
+		auth.Salt,
+		auth.Key)
+	if err != nil {
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
 func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
 	db.Lock()
 	defer db.Unlock()
@@ -110,4 +148,29 @@ func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
 		m[e.Hostname] = &e
 	}
 	return m, err
+}
+
+func (db *CoolDB) LoadUsers() (map[string]*Auth, error) {
+	db.Lock()
+	defer db.Unlock()
+
+	// TODO get all the other stuff as well
+	rows, err := db.c.Query("SELECT name, salt, key FROM users")
+	if err != nil {
+		return nil, err
+	}
+	u := make(map[string]*Auth)
+	for rows.Next() {
+		a := Auth{}
+		err = rows.Scan(
+			&a.Name,
+			&a.Salt,
+			&a.Key)
+		if err != nil {
+			break
+		}
+		u[a.Name] = &a
+	}
+	return u, err
+
 }

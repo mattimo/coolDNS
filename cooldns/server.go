@@ -82,9 +82,17 @@ func Run() {
 	}
 	dnsCache, err := db.LoadAll()
 	if err != nil {
-		log.Fatal("Error Loading Cache:", err)
+		log.Fatal("Error Loading DNS Cache:", err)
 	}
-	DNSDB.LoadCache(dnsCache)
+	userCache, err := db.LoadUsers()
+	if err != nil {
+		log.Fatal("Error Loading User Cache:", err)
+	}
+	DNSDB.LoadCache(dnsCache, userCache)
+	err = createDummyUser("root", "123", db)
+	if err != nil {
+		log.Println("Error adding user:", err)
+	}
 
 	m := martini.Classic()
 	m.Use(auth.Basic("root", "123"))
@@ -97,4 +105,25 @@ func Run() {
 	go RunDns()
 
 	m.Run()
+}
+
+func createDummyUser(name, secret string, db *CoolDB) error {
+	a, err := NewAuth(name, secret)
+	if err != nil {
+		return err
+	}
+
+	ok, err := a.CheckAuth(name, secret)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		log.Println("Woha auth didn't match")
+	}
+	err = db.SaveAuth(a)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
