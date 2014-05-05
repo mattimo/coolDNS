@@ -90,7 +90,7 @@ func Run() {
 	regBinding := binding.Form(Registration{})
 
 	m.Get("/", regBinding, Register)
-
+	go RunDns()
 
 	m.Run()
 }

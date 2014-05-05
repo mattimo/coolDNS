@@ -51,6 +51,7 @@ func NewCoolDB(filename string) (*CoolDB, error) {
 }
 
 func (db *CoolDB) SaveEntry(e *Entry) error {
+	DNSDB.Put(e)
 	db.Lock()
 	defer db.Unlock()
 
