@@ -3,7 +3,6 @@ package cooldns
 import (
 	"github.com/miekg/dns"
 	"net"
-	"strconv"
 	"log"
 )
 
@@ -13,7 +12,6 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 	var (
 		v4 bool
 		rr dns.RR
-		str string
 		a net.IP
 	)
 
@@ -34,12 +32,10 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 
 	// DO QUERY STUFF HERE
 	if ip, ok := w.RemoteAddr().(*net.UDPAddr); ok {
-		str = "Port: " + strconv.Itoa(ip.Port) + " (udp)"
 		a = ip.IP
 		v4 = a.To4() != nil
 	}
 	if ip, ok := w.RemoteAddr().(*net.TCPAddr); ok {
-		str = "Port: " + strconv.Itoa(ip.Port) + " (tcp)"
 		a = ip.IP
 		v4 = a.To4() != nil
 	}
@@ -62,18 +58,19 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 		rr.(*dns.AAAA).AAAA = entry.MyIp6
 	}
 
-	t := new(dns.TXT)
-	t.Hdr = dns.RR_Header{Name: dom, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
-	t.Txt = []string{str}
 
 
 	switch r.Question[0].Qtype {
 	case dns.TypeAAAA, dns.TypeA:
 		m.Answer = append(m.Answer, rr)
-		m.Extra = append(m.Extra, t)
 	case dns.TypeTXT:
+		t := new(dns.TXT)
+		t.Hdr = dns.RR_Header{Name: dom, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
+		if entry.Txt == "" {
+			break
+		}
+		t.Txt = []string{entry.Txt}
 		m.Answer = append(m.Answer, t)
-		m.Extra = append(m.Extra, rr)
 	}
 
 	return
