@@ -21,7 +21,8 @@ type MxEntry struct {
 
 type Entry struct {
 	Hostname	string
-	MyIp		net.IP
+	MyIp6		net.IP
+	MyIp4		net.IP
 	Offline		bool
 	Txt		string
 	Mx		[]MxEntry
@@ -33,6 +34,10 @@ func init() {
 	DNSDB = DnsDB{
 		db: make(map[string]*Entry),
 	}
+}
+
+func (d *DnsDB) LoadCache(m map[string]*Entry) {
+	d.db = m
 }
 
 func (d *DnsDB) Put(e *Entry) {

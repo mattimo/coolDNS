@@ -4,6 +4,7 @@ import (
 	_ "code.google.com/p/gosqlite/sqlite3"
 	"database/sql"
 	"sync"
+	"net"
 )
 
 type CoolDB struct {
@@ -15,6 +16,7 @@ const createString string = `
 CREATE TABLE if NOT EXISTS cooldns (
   hostname TEXT,
   myip TEXT,
+  myip6 TEXT,
   offline BOOLEAN,
   txt TEXT,
   mx TEXT,
@@ -51,7 +53,9 @@ func NewCoolDB(filename string) (*CoolDB, error) {
 }
 
 func (db *CoolDB) SaveEntry(e *Entry) error {
-	DNSDB.Put(e)
+	if !e.Offline {
+		DNSDB.Put(e)
+	}
 	db.Lock()
 	defer db.Unlock()
 
@@ -66,7 +70,7 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 	VALUES (?, ?, ?, ?)
 			`,
 			e.Hostname,
-			e.MyIp.String(),
+			e.MyIp4.String(),
 			e.Offline,
 			e.Txt)
 	if err != nil {
@@ -75,4 +79,34 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 	}
 	tx.Commit()
 	return nil
+}
+
+func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
+	db.Lock()
+	defer db.Unlock()
+
+	// TODO get all the other stuff as well
+	rows, err := db.c.Query("SELECT hostname, myip, offline, txt FROM cooldns")
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]*Entry)
+	for rows.Next() {
+		e := Entry{}
+		var ip4 string
+		err = rows.Scan(
+			&e.Hostname,
+			&ip4,
+			&e.Offline,
+			&e.Txt)
+		if err != nil {
+			break
+		}
+		e.MyIp4 = net.ParseIP(ip4)
+		if e.MyIp4 == nil {
+			break
+		}
+		m[e.Hostname] = &e
+	}
+	return m, err
 }

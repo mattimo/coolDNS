@@ -62,7 +62,7 @@ func Register(db *CoolDB,reg Registration, errors binding.Errors) string {
 
 	e := &Entry{
 		Hostname: reg.Hostname,
-		MyIp: net.ParseIP(reg.MyIp),
+		MyIp4: net.ParseIP(reg.MyIp),
 		Offline: offline,
 		Txt: reg.Txt,
 	}
@@ -80,7 +80,11 @@ func Run() {
 	if err != nil {
 		log.Fatal("Error Loading db:", err)
 	}
-
+	dnsCache, err := db.LoadAll()
+	if err != nil {
+		log.Fatal("Error Loading Cache:", err)
+	}
+	DNSDB.LoadCache(dnsCache)
 
 	m := martini.Classic()
 	m.Use(auth.Basic("root", "123"))

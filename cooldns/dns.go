@@ -19,6 +19,18 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 
 	m := new(dns.Msg)
 	m.SetReply(r)
+	defer func (w dns.ResponseWriter, m *dns.Msg){
+		err := w.WriteMsg(m)
+		if err != nil {
+			log.Println("WOOPS ERRRROOOORR:", err)
+		}
+	}(w, m)
+
+
+	entry := DNSDB.Get(r.Question[0].Name)
+	if entry == nil {
+		return
+	}
 
 	// DO QUERY STUFF HERE
 	if ip, ok := w.RemoteAddr().(*net.UDPAddr); ok {
@@ -34,12 +46,20 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 
 	if v4 {
 		rr = new(dns.A)
-		rr.(*dns.A).Hdr = dns.RR_Header{Name: dom, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0}
-		rr.(*dns.A).A = DNSDB.Get(r.Question[0].Name).MyIp
+		rr.(*dns.A).Hdr = dns.RR_Header{Name: entry.Hostname, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0}
+		ip4 := entry.MyIp4
+		if ip4 == nil {
+			return
+		}
+		rr.(*dns.A).A = ip4
 	} else {
 		rr = new(dns.AAAA)
-		rr.(*dns.AAAA).Hdr = dns.RR_Header{Name: dom, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 0}
-		rr.(*dns.AAAA).AAAA = DNSDB.Get(r.Question[0].Name).MyIp
+		rr.(*dns.AAAA).Hdr = dns.RR_Header{Name: entry.Hostname, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 0}
+		ip6 := entry.MyIp6
+		if ip6 == nil {
+			return
+		}
+		rr.(*dns.AAAA).AAAA = entry.MyIp6
 	}
 
 	t := new(dns.TXT)
@@ -56,10 +76,6 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 		m.Extra = append(m.Extra, rr)
 	}
 
-	err := w.WriteMsg(m)
-	if err != nil {
-		log.Println("WOOPS ERRRROOOORR:", err)
-	}
 	return
 
 }
