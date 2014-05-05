@@ -20,8 +20,9 @@ CREATE TABLE if NOT EXISTS cooldns (
   offline BOOLEAN,
   txt TEXT,
   mx TEXT,
-  cnames TEXT
-)
+  cnames TEXT,
+UNIQUE (hostname) ON CONFLICT REPLACE
+) 
 `
 
 func createTable(db *sql.DB) error {
