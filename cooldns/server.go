@@ -89,7 +89,7 @@ func Run() {
 		log.Fatal("Error Loading User Cache:", err)
 	}
 	DNSDB.LoadCache(dnsCache, userCache)
-	err = createDummyUser("root", "123", db)
+	err = createDummyUser("root", "12345678", db)
 	if err != nil {
 		log.Println("Error adding user:", err)
 	}
