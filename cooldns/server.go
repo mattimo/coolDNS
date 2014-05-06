@@ -3,12 +3,12 @@ package cooldns
 import (
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/binding"
-	"github.com/martini-contrib/auth"
 	"log"
 	"fmt"
 	"net/http"
 	"net"
 	"strings"
+	"encoding/base64"
 )
 
 type Registration struct {
@@ -46,6 +46,70 @@ func (r *Registration) Validate(errors binding.Errors, req *http.Request) (bindi
 		})
 	}
 	return errors
+}
+
+func returnAuthErr(res http.ResponseWriter, errMsg string) {
+	res.Header().Set("WWW-Authenticate", "Basic realm=\" "+errMsg+"\"")
+	http.Error(res, "Not Authorized", http.StatusUnauthorized)
+	return
+}
+
+func AuthHandler(res http.ResponseWriter, req *http.Request) {
+	// Get name and secret from auth
+	rAuthString := req.Header.Get("Authorization")
+	if rAuthString == "" {
+		returnAuthErr(res, "Authorization Required")
+		return
+	}
+	// Decode base64 auth string, but strip away the "Basic " auth method 
+	// decleration
+	rAuth , err := base64.StdEncoding.DecodeString(strings.Replace(rAuthString, "Basic ", "", 1))
+	if err != nil {
+		returnAuthErr(res, "Malfencoded authorization string")
+		return
+	}
+	// Get the two values separeated by a colon.
+	// If there is more then one colon the the realm it must be wrong, so 
+	// yield an error.
+	rAuthArray := strings.Split(string(rAuth), ":")
+	if len(rAuthArray) != 2 {
+		returnAuthErr(res, "Malformed authorization string")
+		return
+	}
+	// Get the name and secret
+	rName, rSecret := rAuthArray[0], rAuthArray[1]
+
+	// Parse the requests Form and return an error on failure
+	err = req.ParseForm()
+	if err != nil {
+		returnAuthErr(res, "Malformed Request")
+		return
+	}
+	// Get the hostname out of the Header and check if it is neither
+	// empty nor different from the user name.
+	hostname := req.Form.Get("hostname")
+	if hostname == "" || hostname != rName{
+		returnAuthErr(res, "User does not match request hostname")
+		return
+	}
+	// Get the user name from the user db, if the user doesn't exist we 
+	// just return an error stating that the user does not exist. This is 
+	// Totally ok because the username equals the domain name that is 
+	// public anyway
+	a := DNSDB.GetUser(rName)
+	if a == nil {
+		log.Println("No User for hostname:", rName)
+		returnAuthErr(res, "hostname does not exist")
+		return
+	}
+
+	// Check Authentication realm
+	ok, err := a.CheckAuth(rName, rSecret)
+	if err != nil || !ok {
+		returnAuthErr(res, "Secret is Wrong")
+		log.Println("Auth is not Valid, You shall not pass", rName)
+		return
+	}
 }
 
 func Register(db *CoolDB,reg Registration, errors binding.Errors) string {
@@ -89,19 +153,18 @@ func Run() {
 		log.Fatal("Error Loading User Cache:", err)
 	}
 	DNSDB.LoadCache(dnsCache, userCache)
-	err = createDummyUser("root", "12345678", db)
+	err = createDummyUser("doof.ist.nicht.cool.", "12345678", db)
 	if err != nil {
 		log.Println("Error adding user:", err)
 	}
 
 	m := martini.Classic()
-	m.Use(auth.Basic("root", "123"))
 	m.Map(db)
 
 	// binding registration
 	regBinding := binding.Form(Registration{})
 
-	m.Get("/", regBinding, Register)
+	m.Get("/", AuthHandler, regBinding, Register)
 	go RunDns()
 
 	m.Run()
