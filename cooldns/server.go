@@ -164,7 +164,7 @@ func Run() {
 	// binding registration
 	regBinding := binding.Form(Registration{})
 
-	m.Get("/", AuthHandler, regBinding, Register)
+	m.Get("/nic/update", AuthHandler, regBinding, Register)
 	go RunDns()
 
 	m.Run()
