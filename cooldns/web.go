@@ -33,6 +33,10 @@ func Index(db *CoolDB, r render.Render) {
 	r.HTML(200, "index", map[string]string{"rcpublic": rcPublicKey})
 }
 
+func Update(db *CoolDB, r render.Render) {
+	r.HTML(200, "update", map[string]string{"rcpublic": rcPublicKey})
+}
+
 func checkNewDomain(n WebNewDomain)  (ok bool, errors []string){
 	ok = false
 	// Check if Hostname is fqdn with needed suffix and a minimum of two 

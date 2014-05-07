@@ -167,8 +167,11 @@ func Run() {
 	// binding registration
 	regBinding := binding.Form(Registration{})
 
+	// update Handler for form api
 	m.Get("/nic/update", AuthHandler, regBinding, Register)
-	m.Get("/", binding.Json(WebNewDomain{}), Index)
+	// Website
+	m.Get("/", Index)
+	m.Get("/update", Update)
 	go RunDns()
 
 	m.Run()
