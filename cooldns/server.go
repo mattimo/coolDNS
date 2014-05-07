@@ -1,49 +1,49 @@
 package cooldns
 
 import (
-	"github.com/go-martini/martini"
+	"encoding/base64"
+	"fmt"
 	"github.com/codegangsta/martini-contrib/render"
+	"github.com/go-martini/martini"
 	"github.com/martini-contrib/binding"
 	"log"
-	"fmt"
-	"net/http"
 	"net"
+	"net/http"
 	"strings"
-	"encoding/base64"
 )
 
 type Registration struct {
-	Hostname	string `form:"hostname"`
-	MyIp		string `form:"myip"`
-	Offline		string `form:"offline"`
-	Txt		string `form:"txt"`
+	Hostname string `form:"hostname"`
+	MyIp     string `form:"myip"`
+	Offline  string `form:"offline"`
+	Txt      string `form:"txt"`
 }
 
-func (r *Registration) Validate(errors binding.Errors, req *http.Request) (binding.Errors) {
+func (r *Registration) Validate(errors binding.Errors, req *http.Request) binding.Errors {
 	if req.Form.Get("hostname") == "" {
 		errors = append(errors, binding.Error{
 			Classification: binding.RequiredError,
-			Message: "hostname Field is empty",
+			Message:        "hostname Field is empty",
 		})
 	}
 	if req.Form.Get("myip") == "" {
 		errors = append(errors, binding.Error{
 			Classification: binding.RequiredError,
-			Message: "myip Field is empty",
+			Message:        "myip Field is empty",
 		})
 	}
 	ip := net.ParseIP(req.Form.Get("myip"))
 	if ip == nil {
 		errors = append(errors, binding.Error{
 			Classification: binding.ContentTypeError,
-			Message: "myip is not an IP Address",
+			Message:        "myip is not an IP Address",
 		})
 	}
 	offline := strings.ToLower(req.Form.Get("offline"))
-	if offline != "" && offline != "yes" && offline != "no" && offline != "maybe"{
+	if offline != "" && offline != "yes" && offline != "no" && offline != "maybe" {
 		errors = append(errors, binding.Error{
 			Classification: binding.ContentTypeError,
-			Message: "offline is neither yes nor no",
+			Message:        "offline is neither yes nor no",
 		})
 	}
 	return errors
@@ -62,15 +62,15 @@ func AuthHandler(res http.ResponseWriter, req *http.Request) {
 		returnAuthErr(res, "Authorization Required")
 		return
 	}
-	// Decode base64 auth string, but strip away the "Basic " auth method 
+	// Decode base64 auth string, but strip away the "Basic " auth method
 	// decleration
-	rAuth , err := base64.StdEncoding.DecodeString(strings.Replace(rAuthString, "Basic ", "", 1))
+	rAuth, err := base64.StdEncoding.DecodeString(strings.Replace(rAuthString, "Basic ", "", 1))
 	if err != nil {
 		returnAuthErr(res, "Malfencoded authorization string")
 		return
 	}
 	// Get the two values separeated by a colon.
-	// If there is more then one colon the the realm it must be wrong, so 
+	// If there is more then one colon the the realm it must be wrong, so
 	// yield an error.
 	rAuthArray := strings.Split(string(rAuth), ":")
 	if len(rAuthArray) != 2 {
@@ -89,13 +89,13 @@ func AuthHandler(res http.ResponseWriter, req *http.Request) {
 	// Get the hostname out of the Header and check if it is neither
 	// empty nor different from the user name.
 	hostname := req.Form.Get("hostname")
-	if hostname == "" || hostname != rName{
+	if hostname == "" || hostname != rName {
 		returnAuthErr(res, "User does not match request hostname")
 		return
 	}
-	// Get the user name from the user db, if the user doesn't exist we 
-	// just return an error stating that the user does not exist. This is 
-	// Totally ok because the username equals the domain name that is 
+	// Get the user name from the user db, if the user doesn't exist we
+	// just return an error stating that the user does not exist. This is
+	// Totally ok because the username equals the domain name that is
 	// public anyway
 	a := DNSDB.GetUser(rName)
 	if a == nil {
@@ -113,7 +113,7 @@ func AuthHandler(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func Register(db *CoolDB,r render.Render, reg Registration, errors binding.Errors) string {
+func Register(db *CoolDB, r render.Render, reg Registration, errors binding.Errors) string {
 	if errors != nil {
 		return fmt.Sprintf("%v", errors)
 	}
@@ -127,9 +127,9 @@ func Register(db *CoolDB,r render.Render, reg Registration, errors binding.Error
 
 	e := &Entry{
 		Hostname: reg.Hostname,
-		MyIp4: net.ParseIP(reg.MyIp),
-		Offline: offline,
-		Txt: reg.Txt,
+		MyIp4:    net.ParseIP(reg.MyIp),
+		Offline:  offline,
+		Txt:      reg.Txt,
 	}
 	err := db.SaveEntry(e)
 	if err != nil {
@@ -173,9 +173,9 @@ func Run() {
 	m.Get("/", Index)
 	m.Get("/update", Update)
 	// form api handlers
-	m.Group("/api", func(r martini.Router){
+	m.Group("/api", func(r martini.Router) {
 		// domain handlers
-		r.Group("/domain", func(r martini.Router){
+		r.Group("/domain", func(r martini.Router) {
 			r.Post("/new", binding.Form(WebNewDomain{}), FormApiDomainNew)
 			r.Post("/update", binding.Form(WebUpdateDomain{}), FormApiDomainUpdate)
 		})

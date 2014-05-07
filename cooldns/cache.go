@@ -3,37 +3,37 @@ package cooldns
 import (
 	"net"
 	"sync"
-	)
+)
 
 type DnsDB struct {
 	sync.RWMutex
-	db	map[string]*Entry
-	users	map[string]*Auth
+	db    map[string]*Entry
+	users map[string]*Auth
 }
 
 var (
-	DNSDB	DnsDB
+	DNSDB DnsDB
 )
 
 type MxEntry struct {
-	ip	net.IP
+	ip       net.IP
 	priority int
 }
 
 type Entry struct {
-	Hostname	string
-	MyIp6		net.IP
-	MyIp4		net.IP
-	Offline		bool
-	Txt		string
-	Mx		[]MxEntry
-	Cnames		[]string
+	Hostname string
+	MyIp6    net.IP
+	MyIp4    net.IP
+	Offline  bool
+	Txt      string
+	Mx       []MxEntry
+	Cnames   []string
 }
 
 func init() {
 
 	DNSDB = DnsDB{
-		db: make(map[string]*Entry),
+		db:    make(map[string]*Entry),
 		users: make(map[string]*Auth),
 	}
 }

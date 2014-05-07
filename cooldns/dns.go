@@ -2,8 +2,8 @@ package cooldns
 
 import (
 	"github.com/miekg/dns"
-	"net"
 	"log"
+	"net"
 )
 
 const dom string = "ist.nicht.cool."
@@ -12,18 +12,17 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 	var (
 		v4 bool
 		rr dns.RR
-		a net.IP
+		a  net.IP
 	)
 
 	m := new(dns.Msg)
 	m.SetReply(r)
-	defer func (w dns.ResponseWriter, m *dns.Msg){
+	defer func(w dns.ResponseWriter, m *dns.Msg) {
 		err := w.WriteMsg(m)
 		if err != nil {
 			log.Println("WOOPS ERRRROOOORR:", err)
 		}
 	}(w, m)
-
 
 	entry := DNSDB.Get(r.Question[0].Name)
 	if entry == nil {
@@ -57,8 +56,6 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		rr.(*dns.AAAA).AAAA = entry.MyIp6
 	}
-
-
 
 	switch r.Question[0].Qtype {
 	case dns.TypeAAAA, dns.TypeA:

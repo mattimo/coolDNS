@@ -1,14 +1,14 @@
 package cooldns
 
 import (
-	"net/http"
-	"crypto/x509"
-	"log"
-	"io/ioutil"
 	"crypto/tls"
-	"os"
+	"crypto/x509"
 	"errors"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -17,20 +17,20 @@ const (
 )
 
 var (
-	rcPublicKey string
+	rcPublicKey  string
 	rcPrivateKey string
 
 	pool *x509.CertPool
 	// locations to search for bundled ssl certfiles
 	certSearch []string = []string{"/etc/ssl/cert.pem", // Recomended by the go doc
-				// Found this one under fedora 19, seems to be
-				// part of the one central cert pool for 
-				// everything project.
-				"/etc/ssl/certs/ca-bundle.crt",
-			}
+		// Found this one under fedora 19, seems to be
+		// part of the one central cert pool for
+		// everything project.
+		"/etc/ssl/certs/ca-bundle.crt",
+	}
 	tlsConfig *tls.Config
-	trans *http.Transport
-	client *http.Client
+	trans     *http.Transport
+	client    *http.Client
 )
 
 func init() {
@@ -47,14 +47,14 @@ func init() {
 	loadCertPool(pool)
 
 	tlsConfig = &tls.Config{
-			RootCAs: pool,
-		}
+		RootCAs: pool,
+	}
 	trans = &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
+		TLSClientConfig: tlsConfig,
+	}
 	client = &http.Client{
-			Transport: trans,
-		}
+		Transport: trans,
+	}
 
 }
 
@@ -75,18 +75,18 @@ func loadCertPool(pool *x509.CertPool) {
 	if err != nil {
 		log.Fatal("Error Loading certificates:", err)
 	}
-	if !pool.AppendCertsFromPEM(certBundle){
+	if !pool.AppendCertsFromPEM(certBundle) {
 		log.Fatal("Could not load Certs")
 	}
 }
 
-func checkReCaptcha(remoteip, challenge, response string) (string, error){
+func checkReCaptcha(remoteip, challenge, response string) (string, error) {
 	res, err := client.PostForm(reCaptchaURL,
-				url.Values{
-					"privatekey": {rcPrivateKey},
-					"remoteip": {remoteip},
-					"challenge": {challenge},
-					"response": {response}})
+		url.Values{
+			"privatekey": {rcPrivateKey},
+			"remoteip":   {remoteip},
+			"challenge":  {challenge},
+			"response":   {response}})
 	if err != nil {
 		return "", err
 	}

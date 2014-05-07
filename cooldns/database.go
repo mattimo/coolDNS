@@ -3,13 +3,13 @@ package cooldns
 import (
 	_ "code.google.com/p/gosqlite/sqlite3"
 	"database/sql"
-	"sync"
 	"net"
+	"sync"
 )
 
 type CoolDB struct {
 	sync.Mutex
-	c	*sql.DB
+	c *sql.DB
 }
 
 const createCoolDNS string = `
@@ -83,10 +83,10 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 	 (hostname, myip, offline, txt) 
 	VALUES (?, ?, ?, ?);
 			`,
-			e.Hostname,
-			e.MyIp4.String(),
-			e.Offline,
-			e.Txt)
+		e.Hostname,
+		e.MyIp4.String(),
+		e.Offline,
+		e.Txt)
 	if err != nil {
 		tx.Rollback()
 		return err
