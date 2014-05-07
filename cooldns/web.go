@@ -31,6 +31,8 @@ type WebUpdateDomain struct {
 	TXTs	string `form:"txt"`
 }
 
+type WebErrorHandler func(int, []string, interface{})
+
 func init() {
 	newsuffix := os.Getenv("COOLDNS_SUFFIX")
 	if newsuffix != "" {
@@ -39,7 +41,7 @@ func init() {
 }
 
 func Index(db *CoolDB, r render.Render) {
-	r.HTML(200, "index", map[string]string{"rcpublic": rcPublicKey})
+	r.HTML(200, "index", map[string]string{"Rcpublic": rcPublicKey})
 }
 
 func Update(db *CoolDB, r render.Render) {
@@ -99,12 +101,35 @@ func checkUpdateDomain(n *WebUpdateDomain)  (ok bool, errors []string){
 	return
 }
 
+
+type newView struct {
+	Rcpublic string
+	Err	[]string	// Occured Errors
+	F	*WebNewDomain // Prefilled items
+}
+
 func FormApiDomainNew(db *CoolDB,
 			r render.Render,
 			n WebNewDomain,
 			errors binding.Errors,
 			req *http.Request) {
-	NewDomain(db, r, n, errors, req)
+
+	errHandler := func(errCode int, errors []string, content interface{}){
+		vContent := content.(*WebNewDomain)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, domainsuffix)
+		view := &newView{
+				Rcpublic: rcPublicKey,
+				Err: errors,
+				F: vContent,
+				}
+		r.HTML(errCode, "index", view)
+	}
+	newDomain(db, r, n, errors, req, errHandler)
+}
+
+type updateView struct {
+	Err	[]string	// Occured Errors
+	F	*WebUpdateDomain // Prefilled items
 }
 
 func FormApiDomainUpdate(db *CoolDB,
@@ -113,7 +138,16 @@ func FormApiDomainUpdate(db *CoolDB,
 			errors binding.Errors,
 			req *http.Request) {
 
-	UpdateDomain(db, r, n, errors, req)
+	errHandler := func(errCode int, errors []string, content interface{}){
+		vContent := content.(*WebUpdateDomain)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, domainsuffix)
+		view := &updateView{
+				Err: errors,
+				F: vContent,
+				}
+		r.HTML(errCode, "update", view)
+	}
+	UpdateDomain(db, r, n, errors, req, errHandler)
 }
 
 func extractRecords(input string) (exist bool, records []string) {
@@ -128,24 +162,26 @@ func UpdateDomain(db *CoolDB,
 			r render.Render,
 			n WebUpdateDomain,
 			errors binding.Errors,
-			req *http.Request) {
+			req *http.Request,
+			errHandler WebErrorHandler) {
 
 	// Check object for sanity
 	ok, nerrors := checkUpdateDomain(&n)
 	if !ok {
-		r.JSON(200, nerrors)
+		errHandler(200, nerrors, &n)
+		return
 	}
 
 	// Get Auth
 	a := DNSDB.GetUser(n.Hostname)
 	if a == nil {
-		r.JSON(200, "Hostname and Secret do not match")
+		errHandler(200, []string{"Hostname and Secret do not match"}, &n)
 		return
 	}
 	// Check Authentication realm
 	ok, err := a.CheckAuth(n.Hostname, n.Secret)
 	if err != nil || !ok {
-		r.JSON(200, "Hostname and Secret do not match")
+		errHandler(200, []string{"Hostname and Secret do not match"}, &n)
 		return
 	}
 
@@ -189,46 +225,53 @@ func UpdateDomain(db *CoolDB,
 	err = db.SaveEntry(entry)
 	if err != nil {
 		log.Println("New Domain: Entry could not be saved", err)
-		r.JSON(500, "")
+		errHandler(500, []string{"Internal Server Error"}, &n)
 		return
 	}
-	r.HTML(200, "update", nil)
+	errHandler(200, []string{}, &n)
 
 }
 
-func NewDomain(db *CoolDB, r render.Render, n WebNewDomain, errors binding.Errors, req *http.Request) {
+func newDomain(db *CoolDB,
+		r render.Render,
+		n WebNewDomain,
+		errors binding.Errors,
+		req *http.Request,
+		errHandler WebErrorHandler) {
+
 	ok, nerrors := checkNewDomain(&n)
 	if !ok {
-		r.JSON(200, nerrors)
+		errHandler(200, nerrors, &n)
+		return
 	}
 	remoteip := strings.Split(req.RemoteAddr, ":")[0]
 	ok, err := ReCaptcha(remoteip, n.RcChal, n.RcResp)
 	if err != nil {
 		log.Println("NewDomain: Failed to verify reCAPTCHA:", err)
-		r.JSON(500, "")
+		errHandler(500, []string{"Internal Server Error"}, nil)
 		return
 	}
 	if !ok {
-		r.JSON(200, map[string]string{"Err":"captcha"})
+		errHandler(200, []string{"reCAPTCHA is wrong"},&n)
 		return
 	}
 	// Create Authentication object
 	auth, err := NewAuth(n.Hostname, n.Secret)
 	if err != nil && err != AuthConstraintsNotMet {
 		log.Println("New Domain: Failed to create Auth:", err)
-		r.JSON(500, "")
+		errHandler(500, []string{"Internal Server Error"}, &n)
 		return
 	}
 	// Check if contrainsts were met
 	if err == AuthConstraintsNotMet {
-		r.JSON(200, map[string]string{"Err":"authContraints"})
+		errHandler(200, []string{"Auth Constaints not met"}, &n)
 		return
 	}
 	// Save Auth object
 	err = db.SaveAuth(auth)
 	if err != nil {
 		log.Println("New Domain: Auth could not be saved", err)
-		r.JSON(500, "")
+		errHandler(500, []string{"Internal Server Error"}, &n)
 		return
 	}
 	// Create and save entry
@@ -239,10 +282,18 @@ func NewDomain(db *CoolDB, r render.Render, n WebNewDomain, errors binding.Error
 	err = db.SaveEntry(entry)
 	if err != nil {
 		log.Println("New Domain: Entry could not be saved", err)
-		r.JSON(500, "")
+		errHandler(500, []string{"Internal Server Error"}, &n)
 		return
 	}
-	r.HTML(200, "update", nil)
+	update := &WebUpdateDomain{
+			Hostname: n.Hostname,
+			Secret: n.Secret,
+		}
+	uView := updateView{
+			Err: []string{},
+			F: update,
+	}
+	r.HTML(200, "update", &uView)
 }
 
 

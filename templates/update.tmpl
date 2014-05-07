@@ -22,36 +22,39 @@
 				</ul>
 
 				<h2>Bearbeite deinen nicht coolen dynamischen DNS-Namen</h2>
+				{{ range .Err}}
+				<div class="alert alert-warning">{{.}}</div>
+				{{end}}
 				<form role="form" method="POST" action="/api/domain/update">
 					<div class="form-group">
 						<label for="domainInput">Domainname:</label>
 						<div class="input-group">
-							<input type="text" class="form-control" id="domainInput" name="domain" placeholder="deine.mutter">
+							<input type="text" class="form-control" id="domainInput" name="domain" placeholder="deine.mutter" value="{{.F.Hostname}}">
 							<span class="input-group-addon">.ist.nicht.cool</span>
 						</div>
 					</div>
 					<div class="form-group">
 						<label for="secretInput">Aktualisierungspasswort</label>
-						<input type="password" class="form-control" id="secretInput" name="secret" placeholder="hunter1">
+						<input type="password" class="form-control" id="secretInput" name="secret" placeholder="hunter1" value="{{.F.Secret}}">
 					</div>
 					<div class="form-group">
 						<label for="cnameInput">DNS-Alias (CNAME)</label>
-						<input type="text" class="form-control" id="cnameInput" name="cname" placeholder="Hier Ziel des Alias eingeben">
+						<input type="text" class="form-control" id="cnameInput" name="cname" placeholder="Hier Ziel des Alias eingeben" value="{{ .F.CNames}}">
 						<span class="help-block">Kann nicht gleichzeitig mit anderen Einträgen verwendet werden.</span>
 					</div>
 					<div class="form-group">
 						<label for="ipInput">IPs (A/AAAA records)</label>
-						<textarea class="form-control monospace" id="ipInput" name="ip" placeholder="127.0.0.1"></textarea>
+						<textarea class="form-control monospace" id="ipInput" name="ip" placeholder="127.0.0.1">{{.F.Ips}}</textarea>
 						<span class="help-block">v4 und v6 erlaubt, eine IP pro Zeile.</span>
 					</div>
 					<div class="form-group">
 						<label for="mxInput">Mailserver (MX records)</label>
-						<textarea class="form-control monospace" id="mxInput" name="mx" placeholder="10  mail.ist.nicht.cool"></textarea>
+						<textarea class="form-control monospace" id="mxInput" name="mx" placeholder="10  mail.ist.nicht.cool">{{.F.Mxs}}</textarea>
 						<span class="help-block">Ein Server pro Zeile, Prioritäten können auch angegeben werden.</span>
 					</div>
 					<div class="form-group">
 						<label for="txtInput">TXT records</label>
-						<textarea class="form-control monospace" id="txtInput" name="txt" placeholder="dns stinkt."></textarea>
+						<textarea class="form-control monospace" id="txtInput" name="txt" placeholder="dns stinkt.">{{.F.TXTs}}</textarea>
 						<span class="help-block">Ein TXT-Record pro Zeile.</span>
 					</div>
 					<button type="submit" name="delete" class="btn btn-danger">Eintrag löschen</button>

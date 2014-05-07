@@ -22,11 +22,14 @@
 				</ul>
 
 				<h2>Registriere einen nicht coolen dynamischen DNS-Namen</h2>
+				{{ range .Err}}
+				<div class="alert alert-warning">{{.}}</div>
+				{{end}}
 				<form role="form" method="POST" action="/api/domain/new">
 					<div class="form-group">
 						<label for="domainInput">Domainname</label>
 						<div class="input-group">
-							<input type="text" class="form-control" id="domainInput" name="domain" placeholder="deine.mutter">
+							<input type="text" class="form-control" id="domainInput" name="domain" placeholder="deine.mutter" value="{{.F.Hostname}}">
 							<span class="input-group-addon">.ist.nicht.cool</span>
 						</div>
 						<span class="help-block">Die letzte Komponente des angegeben Namens wird als Wildcard-Subdomain registriert, d.h. <tt>deine.mutter.ist.nicht.cool</tt> wird zu <tt>*.mutter.ist.nicht.cool</tt>.</span>
@@ -38,7 +41,7 @@
 					</div>
 					<div class="form-group">
 					<!-- begin of recaptcha code -->
-						<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?k={{.rcpublic}}"></script>
+						<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?k={{.Rcpublic}}"></script>
 						<noscript>
 							<iframe src="http://www.google.com/recaptcha/api/noscript?k=your_public_key" height="300" width="500" frameborder="0"></iframe><br>
 							<textarea name="recaptcha_challenge_field" rows="3" cols="40"></textarea>
