@@ -2,6 +2,7 @@ package cooldns
 
 import (
 	"github.com/go-martini/martini"
+	"github.com/codegangsta/martini-contrib/render"
 	"github.com/martini-contrib/binding"
 	"log"
 	"fmt"
@@ -112,7 +113,7 @@ func AuthHandler(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func Register(db *CoolDB,reg Registration, errors binding.Errors) string {
+func Register(db *CoolDB,r render.Render, reg Registration, errors binding.Errors) string {
 	if errors != nil {
 		return fmt.Sprintf("%v", errors)
 	}
@@ -160,11 +161,14 @@ func Run() {
 
 	m := martini.Classic()
 	m.Map(db)
+	m.Use(render.Renderer())
+	m.Use(martini.Static("assets"))
 
 	// binding registration
 	regBinding := binding.Form(Registration{})
 
 	m.Get("/nic/update", AuthHandler, regBinding, Register)
+	m.Get("/", binding.Json(WebNewDomain{}), Index)
 	go RunDns()
 
 	m.Run()
