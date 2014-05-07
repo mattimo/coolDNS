@@ -81,7 +81,7 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 	_, err = tx.Exec(`
 	INSERT OR REPLACE INTO cooldns 
 	 (hostname, myip, offline, txt) 
-	VALUES (?, ?, ?, ?)
+	VALUES (?, ?, ?, ?);
 			`,
 			e.Hostname,
 			e.MyIp4.String(),
@@ -108,12 +108,13 @@ func (db *CoolDB) SaveAuth(auth *Auth) error {
 	_, err = tx.Exec(`
 	INSERT OR REPLACE INTO users
 	 (name, salt, key)
-	VALUES (?, ?, ?)
+	VALUES (?, ?, ?);
 		`,
 		auth.Name,
 		auth.Salt,
 		auth.Key)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	tx.Commit()
