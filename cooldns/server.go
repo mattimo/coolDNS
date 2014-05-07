@@ -172,6 +172,14 @@ func Run() {
 	// Website
 	m.Get("/", Index)
 	m.Get("/update", Update)
+	// form api handlers
+	m.Group("/api", func(r martini.Router){
+		// domain handlers
+		r.Group("/domain", func(r martini.Router){
+			r.Post("/new", binding.Form(WebNewDomain{}), FormApiDomainNew)
+//			r.Post("/update", binding.Form(WebNewDomain{}), ApiUpdate)
+		})
+	})
 	go RunDns()
 
 	m.Run()

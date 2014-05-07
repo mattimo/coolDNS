@@ -83,7 +83,7 @@ func loadCertPool(pool *x509.CertPool) {
 func checkReCaptcha(remoteip, challenge, response string) (string, error){
 	res, err := client.PostForm(reCaptchaURL,
 				url.Values{
-					"privatekey": {rcPublicKey},
+					"privatekey": {rcPrivateKey},
 					"remoteip": {remoteip},
 					"challenge": {challenge},
 					"response": {response}})

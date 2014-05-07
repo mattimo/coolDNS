@@ -10,16 +10,16 @@ import (
 )
 
 var (
-	domainsuffix string = "ist.nicht.cool."
+	domainsuffix string = ".ist.nicht.cool."
 )
 
 type WebNewDomain struct {
-	Hostname string `json:"hostname"`
-	Mx	string `json:"mx"`
-	Txt	string `json:"txt"`
-	Secret	string `json:"secret"`
-	RcChal	string `json:"rcchal"`
-	RcResp	string `json:"rcresp"`
+	Hostname string `json:"hostname" form:"domain"`
+	Mx	string `json:"mx" form:""`
+	Txt	string `json:"txt" form:""`
+	Secret	string `json:"secret" form:"secret"`
+	RcChal	string `json:"rcchal" form:"recaptcha_challenge_field"`
+	RcResp	string `json:"rcresp" form:"recaptcha_response_field"`
 }
 
 func init() {
@@ -37,13 +37,14 @@ func Update(db *CoolDB, r render.Render) {
 	r.HTML(200, "update", map[string]string{"rcpublic": rcPublicKey})
 }
 
-func checkNewDomain(n WebNewDomain)  (ok bool, errors []string){
+func checkNewDomain(n *WebNewDomain)  (ok bool, errors []string){
 	ok = false
 	// Check if Hostname is fqdn with needed suffix and a minimum of two 
 	// characters as a sub domain
-	if strings.HasSuffix(n.Hostname, domainsuffix) {
-		errors = append(errors, "Hostname has Wrong suffix")
-		return
+	if !strings.HasSuffix(n.Hostname, domainsuffix) {
+		n.Hostname = n.Hostname+domainsuffix
+//		errors = append(errors, "Hostname has Wrong suffix")
+//		return
 	}
 	if len(strings.TrimSuffix(n.Hostname, domainsuffix)) < 2 {
 		errors = append(errors, "Sub domain to short")
@@ -80,12 +81,21 @@ func checkNewDomain(n WebNewDomain)  (ok bool, errors []string){
 	return
 }
 
+func FormApiDomainNew(db *CoolDB,
+			r render.Render,
+			n WebNewDomain,
+			errors binding.Errors,
+			req *http.Request) {
+	NewDomain(db, r, n, errors, req)
+}
+
 func NewDomain(db *CoolDB, r render.Render, n WebNewDomain, errors binding.Errors, req *http.Request) {
-	ok, nerrors := checkNewDomain(n)
+	ok, nerrors := checkNewDomain(&n)
 	if !ok {
 		r.JSON(200, nerrors)
 	}
-	ok, err := ReCaptcha(req.RemoteAddr, n.RcChal, n.RcResp)
+	remoteip := strings.Split(req.RemoteAddr, ":")[0]
+	ok, err := ReCaptcha(remoteip, n.RcChal, n.RcResp)
 	if err != nil {
 		log.Println("NewDomain: Failed to verify reCAPTCHA:", err)
 		r.JSON(500, "")
@@ -125,7 +135,7 @@ func NewDomain(db *CoolDB, r render.Render, n WebNewDomain, errors binding.Error
 		r.JSON(500, "")
 		return
 	}
-	r.JSON(200, "true")
+	r.HTML(200, "update", nil)
 }
 
 
