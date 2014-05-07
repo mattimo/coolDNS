@@ -5,9 +5,11 @@ import (
 	"github.com/martini-contrib/binding"
 	"strings"
 	"log"
+	"os"
+	"net/http"
 )
 
-const (
+var (
 	domainsuffix string = "ist.nicht.cool."
 )
 
@@ -18,6 +20,13 @@ type WebNewDomain struct {
 	Secret	string `json:"secret"`
 	RcChal	string `json:"rcchal"`
 	RcResp	string `json:"rcresp"`
+}
+
+func init() {
+	newsuffix := os.Getenv("COOLDNS_SUFFIX")
+	if newsuffix != "" {
+		domainsuffix = newsuffix
+	}
 }
 
 func Index(db *CoolDB, r render.Render) {
@@ -67,12 +76,12 @@ func checkNewDomain(n WebNewDomain)  (ok bool, errors []string){
 	return
 }
 
-func NewDomain(db *CoolDB, r render.Render, n WebNewDomain, errors binding.Errors) {
+func NewDomain(db *CoolDB, r render.Render, n WebNewDomain, errors binding.Errors, req *http.Request) {
 	ok, nerrors := checkNewDomain(n)
 	if !ok {
 		r.JSON(200, nerrors)
 	}
-	ok, err := ReCaptcha(n.RcChal, n.RcResp)
+	ok, err := ReCaptcha(req.RemoteAddr, n.RcChal, n.RcResp)
 	if err != nil {
 		log.Println("NewDomain: Failed to verify reCAPTCHA:", err)
 		r.JSON(500, "")

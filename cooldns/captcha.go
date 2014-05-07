@@ -12,7 +12,14 @@ import (
 	"strings"
 )
 
+const (
+	reCaptchaURL = "http://www.google.com/recaptcha/api/verify"
+)
+
 var (
+	rcPublicKey string
+	rcPrivateKey string
+
 	pool *x509.CertPool
 	// locations to search for bundled ssl certfiles
 	certSearch []string = []string{"/etc/ssl/cert.pem", // Recomended by the go doc
@@ -27,6 +34,15 @@ var (
 )
 
 func init() {
+	rcPublicKey = os.Getenv("COOLDNS_RC_PUB")
+	if rcPublicKey == "" {
+		log.Fatal("Error: reCAPTCHA public Key missing")
+	}
+	rcPrivateKey = os.Getenv("COOLDNS_RC_PRIV")
+	if rcPrivateKey == "" {
+		log.Fatal("Error: reCAPTCHA private Key missing")
+	}
+
 	pool = x509.NewCertPool()
 	loadCertPool(pool)
 
@@ -63,19 +79,12 @@ func loadCertPool(pool *x509.CertPool) {
 		log.Fatal("Could not load Certs")
 	}
 }
-const (
-	rcPublicKey string = "publicKeyAABBCCDD"
-	rcPrivateKey string = "privateAABBCCDD"
 
-	reCaptchaURL = "http://www.google.com/recaptcha/api/verify"
-
-)
-
-func checkReCaptcha(challenge, response string) (string, error){
+func checkReCaptcha(remoteip, challenge, response string) (string, error){
 	res, err := client.PostForm(reCaptchaURL,
 				url.Values{
 					"privatekey": {rcPublicKey},
-					"remoteip": {rcPrivateKey},
+					"remoteip": {remoteip},
 					"challenge": {challenge},
 					"response": {response}})
 	if err != nil {
@@ -89,8 +98,8 @@ func checkReCaptcha(challenge, response string) (string, error){
 	return string(body), nil
 }
 
-func ReCaptcha(challenge, response string) (bool, error) {
-	answer, err := checkReCaptcha(challenge, response)
+func ReCaptcha(remoteip, challenge, response string) (bool, error) {
+	answer, err := checkReCaptcha(remoteip, challenge, response)
 	if err != nil {
 		return false, err
 	}
