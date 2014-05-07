@@ -16,34 +16,40 @@
 		
 		<div class="row">
 			<div class="container col-md-4 col-md-offset-4">
-				<h2>Registriere einen nicht coolen dynamischen DNS-Namen</h2>
-				<form role="form" method="POST" action="/api/domain/new">
+				<h2>Bearbeite deinen nicht coolen dynamischen DNS-Namen</h2>
+				<form role="form" method="POST" action="/api/domain/update">
 					<div class="form-group">
-						<label for="domainInput">Domainname</label>
+						<label for="domainInput">Domainname:</label>
 						<div class="input-group">
 							<input type="text" class="form-control" id="domainInput" name="domain" placeholder="deine.mutter">
 							<span class="input-group-addon">.ist.nicht.cool</span>
 						</div>
-						<span class="help-block">Die letzte Komponente des angegeben Namens wird als Wildcard-Subdomain registriert, d.h. <tt>deine.mutter.ist.nicht.cool</tt> wird zu <tt>*.mutter.ist.nicht.cool</tt>.</span>
 					</div>
 					<div class="form-group">
 						<label for="secretInput">Aktualisierungspasswort</label>
 						<input type="password" class="form-control" id="secretInput" name="secret" placeholder="hunter1">
-						<span class="help-block">Wird beim Aktualisieren der IP verwendet.</span>
 					</div>
 					<div class="form-group">
-					<!-- begin of recaptcha code -->
-						<script type="text/javascript" src="http://www.google.com/recaptcha/api/challenge?k={{.rcpublic}}"></script>
-						<noscript>
-							<iframe src="http://www.google.com/recaptcha/api/noscript?k=your_public_key" height="300" width="500" frameborder="0"></iframe><br>
-							<textarea name="recaptcha_challenge_field" rows="3" cols="40"></textarea>
-							<input type="hidden" name="recaptcha_response_field" value="manual_challenge">
-						</noscript>
-					<!-- end of recaptcha code -->
+						<label for="cnameInput">DNS-Alias (CNAME)</label>
+						<input type="text" class="form-control" id="cnameInput" name="cname" placeholder="Hier Ziel des Alias eingeben">
+						<span class="help-block">Kann nicht gleichzeitig mit anderen Einträgen verwendet werden.</span>
 					</div>
-					<!-- the following button is necessary as padding to make the container big enough to accomodate the
-					right-flushed submit button. Tested in firefox 29.0 -->
-					<button class="btn btn-danger" style="visibility: hidden">&nbsp;</button>
+					<div class="form-group">
+						<label for="ipInput">IPs (A/AAAA records)</label>
+						<textarea class="form-control monospace" id="ipInput" name="ip" placeholder="127.0.0.1"></textarea>
+						<span class="help-block">v4 und v6 erlaubt, eine IP pro Zeile.</span>
+					</div>
+					<div class="form-group">
+						<label for="mxInput">Mailserver (MX records)</label>
+						<textarea class="form-control monospace" id="mxInput" name="mx" placeholder="10  mail.ist.nicht.cool"></textarea>
+						<span class="help-block">Ein Server pro Zeile, Prioritäten können auch angegeben werden.</span>
+					</div>
+					<div class="form-group">
+						<label for="txtInput">TXT records</label>
+						<textarea class="form-control monospace" id="txtInput" name="txt" placeholder="dns stinkt."></textarea>
+						<span class="help-block">Ein TXT-Record pro Zeile.</span>
+					</div>
+					<button type="submit" name="delete" class="btn btn-danger">Eintrag löschen</button>
 					<button type="submit" class="btn btn-success pull-right">Los!</button>
 				</form>
 				<footer class="footer">
