@@ -32,13 +32,13 @@
 					<div class="form-group">
 						<label for="domainInput">Domainname:</label>
 						<div class="input-group">
-							<input type="text" class="form-control" id="domainInput" name="domain" placeholder="deine.mutter" value="{{.F.Hostname}}">
+							<input type="text" class="form-control" id="domainInput" name="domain" placeholder="deine.mutter" value="{{.F.Hostname}}" required>
 							<span class="input-group-addon">.ist.nicht.cool</span>
 						</div>
 					</div>
 					<div class="form-group">
 						<label for="secretInput">Aktualisierungspasswort</label>
-						<input type="password" class="form-control" id="secretInput" name="secret" placeholder="hunter1" value="{{.F.Secret}}">
+						<input type="password" class="form-control" id="secretInput" name="secret" placeholder="hunter1" value="{{.F.Secret}}" required>
 					</div>
 					<div class="form-group">
 						<label for="cnameInput">DNS-Alias (CNAME)</label>
