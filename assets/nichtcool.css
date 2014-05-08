@@ -1,4 +1,5 @@
 .page-header { background-color: #eee; }
-footer { color: gray; background-color: #eee; }
+.footer { color: gray; background-color: #eee; }
 #domainInput { text-align: right; }
-.monospace { font-family: monospace; }
+.monospace { font-family: monospace;}
+#recaptcha-container {margin: auto; width: 500px;}
