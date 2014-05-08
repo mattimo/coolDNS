@@ -10,6 +10,9 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 type Registration struct {
@@ -145,6 +148,20 @@ func Run() {
 	if err != nil {
 		log.Fatal("Error Loading db:", err)
 	}
+	defer db.Close()
+	// register on Kill Signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Kill, syscall.SIGTERM, os.Interrupt)
+	go func() {
+		_ = <-sigChan
+		log.Println("Close Database")
+		err := db.Close()
+		if err != nil {
+			log.Fatal("Error closing Database:", err)
+		}
+		os.Exit(0)
+	}()
+
 	dnsCache, err := db.LoadAll()
 	if err != nil {
 		log.Fatal("Error Loading DNS Cache:", err)

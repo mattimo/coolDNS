@@ -36,26 +36,31 @@ UNIQUE (name) ON CONFLICT REPLACE
 func createTable(db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+	defer func(){
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
 	_, err = tx.Exec(createCoolDNS)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 	_, err = tx.Exec(createUsers)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func NewCoolDB(filename string) (*CoolDB, error) {
 	db, err := sql.Open("sqlite3", filename)
+	if err != nil {
+		return nil, err
+	}
+	err = db.Ping()
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +69,12 @@ func NewCoolDB(filename string) (*CoolDB, error) {
 		return nil, err
 	}
 	return &CoolDB{c: db}, nil
+}
+
+func (db *CoolDB) Close() error {
+	db.Lock()
+	defer db.Unlock()
+	return db.c.Close()
 }
 
 func (db *CoolDB) SaveEntry(e *Entry) error {
@@ -77,6 +88,11 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 	if err != nil {
 		return err
 	}
+	defer func(){
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
 	_, err = tx.Exec(`
 	INSERT OR REPLACE INTO cooldns 
@@ -88,11 +104,9 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 		e.Offline,
 		e.Txt)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (db *CoolDB) SaveAuth(auth *Auth) error {
@@ -104,6 +118,11 @@ func (db *CoolDB) SaveAuth(auth *Auth) error {
 	if err != nil {
 		return err
 	}
+	defer func(){
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
 	_, err = tx.Exec(`
 	INSERT OR REPLACE INTO users
@@ -114,11 +133,9 @@ func (db *CoolDB) SaveAuth(auth *Auth) error {
 		auth.Salt,
 		auth.Key)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
@@ -130,6 +147,7 @@ func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	m := make(map[string]*Entry)
 	for rows.Next() {
 		e := Entry{}
@@ -160,6 +178,7 @@ func (db *CoolDB) LoadUsers() (map[string]*Auth, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	u := make(map[string]*Auth)
 	for rows.Next() {
 		a := Auth{}
