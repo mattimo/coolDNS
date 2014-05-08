@@ -25,6 +25,9 @@
 				{{ range .Err}}
 				<div class="alert alert-warning">{{.}}</div>
 				{{end}}
+				{{ range .Success}}
+				<div class="alert alert-success">{{.}}</div>
+				{{end}}
 				<form role="form" method="POST" action="/api/domain/update">
 					<div class="form-group">
 						<label for="domainInput">Domainname:</label>

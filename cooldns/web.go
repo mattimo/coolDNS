@@ -30,8 +30,10 @@ type WebUpdateDomain struct {
 	Mxs      string `form:"mx"`
 	TXTs     string `form:"txt"`
 }
-
+// Web Error Handler function signature. Helps you interface with errors
 type WebErrorHandler func(int, []string, interface{})
+// Web Success Handler function signature. Helps interface with success messages
+type WebSuccessHandler func([]string, interface{})
 
 func init() {
 	newsuffix := os.Getenv("COOLDNS_SUFFIX")
@@ -54,8 +56,6 @@ func checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
 	// characters as a sub domain
 	if !strings.HasSuffix(n.Hostname, domainsuffix) {
 		n.Hostname = n.Hostname + domainsuffix
-		//		errors = append(errors, "Hostname has Wrong suffix")
-		//		return
 	}
 	if len(strings.TrimSuffix(n.Hostname, domainsuffix)) < 2 {
 		errors = append(errors, "Sub domain to short")
@@ -123,12 +123,24 @@ func FormApiDomainNew(db *CoolDB,
 		}
 		r.HTML(errCode, "index", view)
 	}
-	newDomain(db, r, n, errors, req, errHandler)
+
+	success := func (success []string, content interface{}) {
+		vContent := content.(*WebUpdateDomain)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, domainsuffix)
+		view := &updateView{
+			Success: success,
+			F:   vContent,
+		}
+		r.HTML(200, "update", view)
+	}
+
+	newDomain(db, r, n, errors, req, errHandler, success)
 }
 
 type updateView struct {
 	Err []string         // Occured Errors
 	F   *WebUpdateDomain // Prefilled items
+	Success []string       // Success string
 }
 
 func FormApiDomainUpdate(db *CoolDB,
@@ -146,7 +158,17 @@ func FormApiDomainUpdate(db *CoolDB,
 		}
 		r.HTML(errCode, "update", view)
 	}
-	UpdateDomain(db, r, n, errors, req, errHandler)
+	success := func (success []string, content interface{}) {
+		vContent := content.(*WebUpdateDomain)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, domainsuffix)
+		view := &updateView{
+			Success: success,
+			F:   vContent,
+		}
+		r.HTML(200, "update", view)
+	}
+
+	UpdateDomain(db, r, n, errors, req, errHandler, success)
 }
 
 func extractRecords(input string) (exist bool, records []string) {
@@ -162,7 +184,8 @@ func UpdateDomain(db *CoolDB,
 	n WebUpdateDomain,
 	errors binding.Errors,
 	req *http.Request,
-	errHandler WebErrorHandler) {
+	errHandler WebErrorHandler,
+	successHandler WebSuccessHandler) {
 
 	// Check object for sanity
 	ok, nerrors := checkUpdateDomain(&n)
@@ -198,7 +221,7 @@ func UpdateDomain(db *CoolDB,
 	exists, Ips := extractRecords(n.Ips)
 	if exists {
 		// TODO: Well this is pretty lame, we have to find a way
-		// to macht A and AA Entries
+		// to macht A and AAAA Entries
 		entry.MyIp4 = net.ParseIP(Ips[0])
 	}
 	// Look for MXs
@@ -227,7 +250,8 @@ func UpdateDomain(db *CoolDB,
 		errHandler(500, []string{"Internal Server Error"}, &n)
 		return
 	}
-	errHandler(200, []string{}, &n)
+	n.Secret = ""
+	successHandler([]string{"Domain was Successfully updated"}, &n)
 
 }
 
@@ -236,7 +260,8 @@ func newDomain(db *CoolDB,
 	n WebNewDomain,
 	errors binding.Errors,
 	req *http.Request,
-	errHandler WebErrorHandler) {
+	errHandler WebErrorHandler,
+	successHandler WebSuccessHandler) {
 
 	ok, nerrors := checkNewDomain(&n)
 	if !ok {
@@ -285,12 +310,8 @@ func newDomain(db *CoolDB,
 		return
 	}
 	update := &WebUpdateDomain{
-		Hostname: n.Hostname,
+		Hostname: strings.TrimSuffix(n.Hostname, domainsuffix),
 		Secret:   n.Secret,
 	}
-	uView := updateView{
-		Err: []string{},
-		F:   update,
-	}
-	r.HTML(200, "update", &uView)
+	successHandler([]string{"Creation of new domain "+update.Hostname+" was successful"}, update)
 }
