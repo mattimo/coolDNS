@@ -190,13 +190,10 @@ func Run() {
 	m.Get("/", Index)
 	m.Get("/update", Update)
 	// form api handlers
-	m.Group("/api", func(r martini.Router) {
-		// domain handlers
-		r.Group("/domain", func(r martini.Router) {
-			r.Post("/new", binding.Form(WebNewDomain{}), FormApiDomainNew)
-			r.Post("/update", binding.Form(WebUpdateDomain{}), FormApiDomainUpdate)
-		})
-	})
+	m.Post("/", binding.Form(WebNewDomain{}), FormApiDomainNew)
+	m.Post("/update", binding.Form(WebUpdateDomain{}), FormApiDomainUpdate)
+
+	// Run the DNS server
 	go RunDns()
 
 	m.Run()
