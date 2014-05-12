@@ -3,12 +3,12 @@ package cooldns
 import (
 	_ "code.google.com/p/gosqlite/sqlite3"
 	"database/sql"
-	"net"
-	"sync"
 	"fmt"
 	"log"
-	"strings"
+	"net"
 	"strconv"
+	"strings"
+	"sync"
 )
 
 type CoolDB struct {
@@ -42,7 +42,7 @@ func createTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	defer func(){
+	defer func() {
 		if err != nil {
 			tx.Rollback()
 		}
@@ -94,7 +94,7 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 	if err != nil {
 		return err
 	}
-	defer func(){
+	defer func() {
 		if err != nil {
 			tx.Rollback()
 		}
@@ -102,12 +102,12 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 	// Check if values exist otherwise fill them with blanks
 	var (
 		hostname string
-		cname string
-		ip4s string
-		ip6s string
-		offline bool
-		txts string
-		mxs string
+		cname    string
+		ip4s     string
+		ip6s     string
+		offline  bool
+		txts     string
+		mxs      string
 	)
 
 	hostname = e.Hostname
@@ -116,7 +116,7 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 
 	var ip4a []string
 	for _, ip4 := range e.Ip4s {
-		ip4a =  append(ip4a, ip4.String())
+		ip4a = append(ip4a, ip4.String())
 	}
 	ip4s = strings.Join(ip4a, dbRecSep)
 
@@ -165,7 +165,7 @@ func (db *CoolDB) SaveAuth(auth *Auth) error {
 	if err != nil {
 		return err
 	}
-	defer func(){
+	defer func() {
 		if err != nil {
 			tx.Rollback()
 		}
@@ -201,7 +201,7 @@ func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
 			ip4s string
 			ip6s string
 			txts string
-			mxs string
+			mxs  string
 		)
 		err = rows.Scan(
 			&e.Hostname,
@@ -210,7 +210,7 @@ func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
 			&ip6s,
 			&e.Offline,
 			&mxs,
-			&txts,)
+			&txts)
 		if err != nil {
 			break
 		}
@@ -244,9 +244,9 @@ func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
 				continue
 			}
 			e.Mxs = append(e.Mxs, MxEntry{
-						ip: mxSubA[1],
-						priority: int(prio),
-					})
+				ip:       mxSubA[1],
+				priority: int(prio),
+			})
 		}
 
 		m[e.Hostname] = &e

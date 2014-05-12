@@ -9,9 +9,9 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strings"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -141,9 +141,9 @@ func Register(db *CoolDB, r render.Render, reg Registration, errors binding.Erro
 
 	e := &Entry{
 		Hostname: reg.Hostname,
-		Ip4s:    []net.IP{net.ParseIP(reg.MyIp)},
+		Ip4s:     []net.IP{net.ParseIP(reg.MyIp)},
 		Offline:  offline,
-		Txts:      []string{reg.Txt},
+		Txts:     []string{reg.Txt},
 	}
 	err := db.SaveEntry(e)
 	if err != nil {

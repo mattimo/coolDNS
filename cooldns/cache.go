@@ -22,12 +22,12 @@ type MxEntry struct {
 
 type Entry struct {
 	Hostname string
-	Ip6s    []net.IP
-	Ip4s    []net.IP
+	Ip6s     []net.IP
+	Ip4s     []net.IP
 	Offline  bool
-	Txts      []string
-	Mxs       []MxEntry
-	Cname   string
+	Txts     []string
+	Mxs      []MxEntry
+	Cname    string
 }
 
 func init() {
