@@ -131,7 +131,7 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 
 	var mxa []string
 	for _, mx := range e.Mxs {
-		mxa = append(mxa, fmt.Sprintf("%i %s", mx.priority, mx.ip))
+		mxa = append(mxa, fmt.Sprintf("%d %s", mx.priority, mx.ip))
 	}
 	mxs = strings.Join(mxa, dbRecSep)
 
@@ -189,7 +189,6 @@ func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
 	db.Lock()
 	defer db.Unlock()
 
-	// TODO get all the other stuff as well
 	rows, err := db.c.Query("SELECT hostname, cname, ip4, ip6, offline, mx, txt FROM cooldns")
 	if err != nil {
 		return nil, err
@@ -241,7 +240,7 @@ func (db *CoolDB) LoadAll() (map[string]*Entry, error) {
 			}
 			prio, err := strconv.ParseInt(mxSubA[0], 10, 0)
 			if err != nil {
-				log.Println("Warning: LoadAll: Malformatted mx entry in database")
+				log.Println("Warning: LoadAll: Malformatted mx entry in database:", mxSubA)
 				continue
 			}
 			e.Mxs = append(e.Mxs, MxEntry{
@@ -259,7 +258,6 @@ func (db *CoolDB) LoadUsers() (map[string]*Auth, error) {
 	db.Lock()
 	defer db.Unlock()
 
-	// TODO get all the other stuff as well
 	rows, err := db.c.Query("SELECT name, salt, key FROM users")
 	if err != nil {
 		return nil, err
