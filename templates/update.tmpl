@@ -33,7 +33,7 @@
 						<label for="domainInput">Domainname:</label>
 						<div class="input-group">
 							<input type="text" class="form-control" id="domainInput" name="domain" placeholder="deine.mutter" value="{{.F.Hostname}}" required>
-							<span class="input-group-addon">.ist.nicht.cool</span>
+							<span class="input-group-addon">{{.Domain}}</span>
 						</div>
 					</div>
 					<div class="form-group">
@@ -52,7 +52,7 @@
 					</div>
 					<div class="form-group">
 						<label for="mxInput">Mailserver (MX records)</label>
-						<textarea class="form-control monospace" id="mxInput" name="mx" placeholder="10  mail.ist.nicht.cool">{{.F.Mxs}}</textarea>
+						<textarea class="form-control monospace" id="mxInput" name="mx" placeholder="10  mail{{.Domain}}">{{.F.Mxs}}</textarea>
 						<span class="help-block">Ein Server pro Zeile, Prioritäten können auch angegeben werden.</span>
 					</div>
 					<div class="form-group">

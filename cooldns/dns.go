@@ -5,8 +5,6 @@ import (
 	"log"
 )
 
-const dom string = "ist.nicht.cool."
-
 func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
@@ -103,7 +101,7 @@ func serve(net, name, secret string) {
 }
 
 func RunDns() {
-	dns.HandleFunc("ist.nicht.cool.", handleReflect)
+	dns.HandleFunc(domainsuffix, handleReflect)
 	go serve("udp", "", "")
 	go serve("tcp", "", "")
 }

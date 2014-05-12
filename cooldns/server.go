@@ -15,11 +15,22 @@ import (
 	"syscall"
 )
 
+var (
+	domainsuffix string = "ist.nicht.cool."
+)
+
 type Registration struct {
 	Hostname string `form:"hostname"`
 	MyIp     string `form:"myip"`
 	Offline  string `form:"offline"`
 	Txt      string `form:"txt"`
+}
+
+func init() {
+	newsuffix := os.Getenv("COOLDNS_SUFFIX")
+	if newsuffix != "" {
+		domainsuffix = newsuffix
+	}
 }
 
 func (r *Registration) Validate(errors binding.Errors, req *http.Request) binding.Errors {
@@ -171,7 +182,7 @@ func Run() {
 		log.Fatal("Error Loading User Cache:", err)
 	}
 	DNSDB.LoadCache(dnsCache, userCache)
-	err = createDummyUser("doof.ist.nicht.cool.", "12345678", db)
+	err = createDummyUser("doof"+domainsuffix, "12345678", db)
 	if err != nil {
 		log.Println("Error adding user:", err)
 	}

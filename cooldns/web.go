@@ -6,13 +6,8 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
-)
-
-var (
-	domainsuffix string = ".ist.nicht.cool."
 )
 
 type WebNewDomain struct {
@@ -35,29 +30,26 @@ type WebErrorHandler func(int, []string, interface{})
 // Web Success Handler function signature. Helps interface with success messages
 type WebSuccessHandler func([]string, interface{})
 
-func init() {
-	newsuffix := os.Getenv("COOLDNS_SUFFIX")
-	if newsuffix != "" {
-		domainsuffix = newsuffix
-	}
-}
-
 func Index(db *CoolDB, r render.Render) {
-	r.HTML(200, "index", map[string]string{"Rcpublic": rcPublicKey})
+	r.HTML(200, "index", map[string]string{
+					"Rcpublic": rcPublicKey,
+					"Domain": domainsuffix})
 }
 
 func Update(db *CoolDB, r render.Render) {
-	r.HTML(200, "update", map[string]string{"rcpublic": rcPublicKey})
+	r.HTML(200, "update", map[string]string{
+					"Rcpublic": rcPublicKey,
+					"Domain": domainsuffix})
 }
 
 func checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
 	ok = false
 	// Check if Hostname is fqdn with needed suffix and a minimum of two
 	// characters as a sub domain
-	if !strings.HasSuffix(n.Hostname, domainsuffix) {
-		n.Hostname = n.Hostname + domainsuffix
+	if !strings.HasSuffix(n.Hostname, "."+domainsuffix) {
+		n.Hostname = n.Hostname + "."+domainsuffix
 	}
-	if len(strings.TrimSuffix(n.Hostname, domainsuffix)) < 2 {
+	if len(strings.TrimSuffix(n.Hostname, "."+domainsuffix)) < 2 {
 		errors = append(errors, "Sub domain to short")
 	}
 	// Check if secret exists
@@ -84,10 +76,10 @@ func checkUpdateDomain(n *WebUpdateDomain) (ok bool, errors []string) {
 	ok = false
 	// Check if Hostname is fqdn with needed suffix and a minimum of two
 	// characters as a sub domain
-	if !strings.HasSuffix(n.Hostname, domainsuffix) {
-		n.Hostname = n.Hostname + domainsuffix
+	if !strings.HasSuffix(n.Hostname, "."+domainsuffix) {
+		n.Hostname = n.Hostname + "."+domainsuffix
 	}
-	if len(strings.TrimSuffix(n.Hostname, domainsuffix)) < 2 {
+	if len(strings.TrimSuffix(n.Hostname, "."+domainsuffix)) < 2 {
 		errors = append(errors, "Sub domain to short")
 	}
 	// Check if secret exists
@@ -102,9 +94,10 @@ func checkUpdateDomain(n *WebUpdateDomain) (ok bool, errors []string) {
 }
 
 type newView struct {
-	Rcpublic string
-	Err      []string      // Occured Errors
-	F        *WebNewDomain // Prefilled items
+	Domain string		// Domain base name
+	Rcpublic string		// reCaptcha Public Key
+	Err      []string	// Occured Errors
+	F        *WebNewDomain	// Prefilled items
 }
 
 func FormApiDomainNew(db *CoolDB,
@@ -115,8 +108,9 @@ func FormApiDomainNew(db *CoolDB,
 
 	errHandler := func(errCode int, errors []string, content interface{}) {
 		vContent := content.(*WebNewDomain)
-		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, domainsuffix)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+domainsuffix)
 		view := &newView{
+			Domain: domainsuffix,
 			Rcpublic: rcPublicKey,
 			Err:      errors,
 			F:        vContent,
@@ -126,8 +120,9 @@ func FormApiDomainNew(db *CoolDB,
 
 	success := func (success []string, content interface{}) {
 		vContent := content.(*WebUpdateDomain)
-		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, domainsuffix)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+domainsuffix)
 		view := &updateView{
+			Domain: domainsuffix,
 			Success: success,
 			F:   vContent,
 		}
@@ -138,6 +133,7 @@ func FormApiDomainNew(db *CoolDB,
 }
 
 type updateView struct {
+	Domain string		// Domain base name
 	Err []string         // Occured Errors
 	F   *WebUpdateDomain // Prefilled items
 	Success []string       // Success string
@@ -151,8 +147,9 @@ func FormApiDomainUpdate(db *CoolDB,
 
 	errHandler := func(errCode int, errors []string, content interface{}) {
 		vContent := content.(*WebUpdateDomain)
-		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, domainsuffix)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+domainsuffix)
 		view := &updateView{
+			Domain: domainsuffix,
 			Err: errors,
 			F:   vContent,
 		}
@@ -160,8 +157,9 @@ func FormApiDomainUpdate(db *CoolDB,
 	}
 	success := func (success []string, content interface{}) {
 		vContent := content.(*WebUpdateDomain)
-		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, domainsuffix)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+domainsuffix)
 		view := &updateView{
+			Domain: domainsuffix,
 			Success: success,
 			F:   vContent,
 		}

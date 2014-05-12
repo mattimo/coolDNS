@@ -30,9 +30,9 @@
 						<label for="domainInput">Domainname</label>
 						<div class="input-group">
 							<input type="text" class="form-control" id="domainInput" name="domain" placeholder="deine.mutter" value="{{.F.Hostname}}" required>
-							<span class="input-group-addon">.ist.nicht.cool</span>
+							<span class="input-group-addon">{{.Domain}}</span>
 						</div>
-						<span class="help-block">Die letzte Komponente des angegeben Namens wird als Wildcard-Subdomain registriert, d.h. <tt>deine.mutter.ist.nicht.cool</tt> wird zu <tt>*.mutter.ist.nicht.cool</tt>.</span>
+						<span class="help-block">Die letzte Komponente des angegeben Namens wird als Wildcard-Subdomain registriert, d.h. <tt>deine.mutter{{.Domain}}</tt> wird zu <tt>*.mutter{{.Domain}}</tt>.</span>
 					</div>
 					<div class="form-group">
 						<label for="secretInput">Aktualisierungspasswort</label>
