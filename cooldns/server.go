@@ -130,9 +130,9 @@ func Register(db *CoolDB, r render.Render, reg Registration, errors binding.Erro
 
 	e := &Entry{
 		Hostname: reg.Hostname,
-		MyIp4:    net.ParseIP(reg.MyIp),
+		Ip4s:    []net.IP{net.ParseIP(reg.MyIp)},
 		Offline:  offline,
-		Txt:      reg.Txt,
+		Txts:      []string{reg.Txt},
 	}
 	err := db.SaveEntry(e)
 	if err != nil {

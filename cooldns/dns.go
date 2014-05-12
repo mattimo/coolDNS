@@ -3,18 +3,11 @@ package cooldns
 import (
 	"github.com/miekg/dns"
 	"log"
-	"net"
 )
 
 const dom string = "ist.nicht.cool."
 
 func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
-	var (
-		v4 bool
-		rr dns.RR
-		a  net.IP
-	)
-
 	m := new(dns.Msg)
 	m.SetReply(r)
 	defer func(w dns.ResponseWriter, m *dns.Msg) {
@@ -29,47 +22,52 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	// DO QUERY STUFF HERE
-	if ip, ok := w.RemoteAddr().(*net.UDPAddr); ok {
-		a = ip.IP
-		v4 = a.To4() != nil
-	}
-	if ip, ok := w.RemoteAddr().(*net.TCPAddr); ok {
-		a = ip.IP
-		v4 = a.To4() != nil
-	}
-
-	if v4 {
-		rr = new(dns.A)
-		rr.(*dns.A).Hdr = dns.RR_Header{Name: entry.Hostname, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0}
-		ip4 := entry.MyIp4
-		if ip4 == nil {
-			return
+	for _, question := range r.Question {
+		switch question.Qtype {
+		case dns.TypeAAAA:
+			for _, ip6 := range entry.Ip6s {
+				rr := new(dns.AAAA)
+				rr.Hdr = dns.RR_Header{Name: entry.Hostname,
+								Rrtype: dns.TypeAAAA,
+								Class: dns.ClassINET,
+								Ttl: 0}
+				rr.AAAA = ip6
+				m.Answer = append(m.Answer, rr)
+			}
+		case dns.TypeA:
+			for _, ip4 := range entry.Ip4s {
+				rr := new(dns.A)
+				rr.Hdr = dns.RR_Header{Name: entry.Hostname,
+							Rrtype: dns.TypeA,
+							Class: dns.ClassINET,
+							Ttl: 0}
+				rr.A = ip4
+				m.Answer = append(m.Answer, rr)
+			}
+		case dns.TypeTXT:
+			t := new(dns.TXT)
+			t.Hdr = dns.RR_Header{Name: entry.Hostname,
+						Rrtype: dns.TypeTXT,
+						Class: dns.ClassINET,
+						Ttl: 0}
+			if len(entry.Txts) == 0 {
+				break
+			}
+			t.Txt = entry.Txts
+			m.Answer = append(m.Answer, t)
+		case dns.TypeMX:
+			for _, emx := range entry.Mxs {
+				mx := new(dns.MX)
+				mx.Hdr = dns.RR_Header{Name: entry.Hostname,
+							Rrtype: dns.TypeMX,
+							Class: dns.ClassINET,
+							Ttl: 0}
+				mx.Mx = emx.ip
+				mx.Preference = uint16(emx.priority)
+				m.Answer = append(m.Answer, mx)
+			}
 		}
-		rr.(*dns.A).A = ip4
-	} else {
-		rr = new(dns.AAAA)
-		rr.(*dns.AAAA).Hdr = dns.RR_Header{Name: entry.Hostname, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 0}
-		ip6 := entry.MyIp6
-		if ip6 == nil {
-			return
-		}
-		rr.(*dns.AAAA).AAAA = entry.MyIp6
 	}
-
-	switch r.Question[0].Qtype {
-	case dns.TypeAAAA, dns.TypeA:
-		m.Answer = append(m.Answer, rr)
-	case dns.TypeTXT:
-		t := new(dns.TXT)
-		t.Hdr = dns.RR_Header{Name: dom, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
-		if entry.Txt == "" {
-			break
-		}
-		t.Txt = []string{entry.Txt}
-		m.Answer = append(m.Answer, t)
-	}
-
 	return
 
 }

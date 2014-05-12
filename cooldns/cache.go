@@ -16,18 +16,18 @@ var (
 )
 
 type MxEntry struct {
-	ip       net.IP
+	ip       string
 	priority int
 }
 
 type Entry struct {
 	Hostname string
-	MyIp6    net.IP
-	MyIp4    net.IP
+	Ip6s    []net.IP
+	Ip4s    []net.IP
 	Offline  bool
-	Txt      string
-	Mx       []MxEntry
-	Cnames   []string
+	Txts      []string
+	Mxs       []MxEntry
+	Cname   string
 }
 
 func init() {

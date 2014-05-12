@@ -215,14 +215,24 @@ func UpdateDomain(db *CoolDB,
 	// Look for cnames
 	exists, cnames := extractRecords(n.CNames)
 	if exists {
-		entry.Cnames = cnames
+		entry.Cname = cnames[0]
 	}
 	// Look for Ips
 	exists, Ips := extractRecords(n.Ips)
 	if exists {
 		// TODO: Well this is pretty lame, we have to find a way
-		// to macht A and AAAA Entries
-		entry.MyIp4 = net.ParseIP(Ips[0])
+		// to match A and AAAA Entries
+		for _, ipString :=  range Ips {
+			ip := net.ParseIP(ipString)
+			if ip == nil {
+				continue //TODO fail louder!
+			}
+			if strings.Contains(ipString, ":") {
+				entry.Ip6s = append(entry.Ip6s, ip)
+			} else {
+				entry.Ip4s = append(entry.Ip4s, ip)
+			}
+		}
 	}
 	// Look for MXs
 	exists, mxs := extractRecords(n.Mxs)
@@ -233,8 +243,8 @@ func UpdateDomain(db *CoolDB,
 			if err != nil {
 				break
 			}
-			entry.Mx = append(entry.Mx, MxEntry{
-				ip:       net.ParseIP(mxa[1]),
+			entry.Mxs = append(entry.Mxs, MxEntry{
+				ip:       mxa[1],
 				priority: int(prio),
 			})
 		}
@@ -242,7 +252,8 @@ func UpdateDomain(db *CoolDB,
 	// Look for Txts
 	exists, txts := extractRecords(n.TXTs)
 	if exists {
-		entry.Txt = txts[0]
+		entry.Txts = txts
+
 	}
 	err = db.SaveEntry(entry)
 	if err != nil {
