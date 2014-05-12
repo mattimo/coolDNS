@@ -25,7 +25,7 @@ type WebNewDomain struct {
 type WebUpdateDomain struct {
 	Hostname string `form:"domain"`
 	Secret   string `form:"secret"`
-	CNames   string `form:"cname"`
+	CName   string `form:"cname"`
 	Ips      string `form:"ip"`
 	Mxs      string `form:"mx"`
 	TXTs     string `form:"txt"`
@@ -171,6 +171,17 @@ func FormApiDomainUpdate(db *CoolDB,
 	UpdateDomain(db, r, n, errors, req, errHandler, success)
 }
 
+func fqdn(s string) string {
+	l := len(s)
+	if l == 0 {
+		return ""
+	}
+	if s[l-1] != '.' {
+		return s+"."
+	}
+	return s
+}
+
 func extractRecords(input string) (exist bool, records []string) {
 	records = strings.Split(input, "\n")
 	for i, r := range records {
@@ -212,10 +223,10 @@ func UpdateDomain(db *CoolDB,
 		Hostname: n.Hostname,
 		Offline:  false,
 	}
-	// Look for cnames
-	exists, cnames := extractRecords(n.CNames)
+	// Look for cname (abusing extractRecord function)
+	exists, cname := extractRecords(n.CName)
 	if exists {
-		entry.Cname = cnames[0]
+		entry.Cname = fqdn(cname[0])
 	}
 	// Look for Ips
 	exists, Ips := extractRecords(n.Ips)
@@ -243,8 +254,9 @@ func UpdateDomain(db *CoolDB,
 			if err != nil {
 				break
 			}
+			mxName := fqdn(mxa[1])
 			entry.Mxs = append(entry.Mxs, MxEntry{
-				ip:       mxa[1],
+				ip:       mxName,
 				priority: int(prio),
 			})
 		}
