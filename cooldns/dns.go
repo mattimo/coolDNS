@@ -3,7 +3,15 @@ package cooldns
 import (
 	"github.com/miekg/dns"
 	"log"
+	"time"
+	"os"
 )
+
+var TsigKey string
+
+func init() {
+	TsigKey = os.Getenv("COOLDNS_TSIG_KEY")
+}
 
 func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
@@ -14,6 +22,9 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 			log.Println("WOOPS ERRRROOOORR:", err)
 		}
 	}(w, m)
+	if TsigKey != "" {
+		m.SetTsig(domainsuffix, dns.HmacSHA256, 300, time.Now().Unix())
+	}
 
 	for _, question := range r.Question {
 		entry := DNSDB.Get(question.Name)
@@ -101,6 +112,6 @@ func serve(net, name, secret string) {
 
 func RunDns() {
 	dns.HandleFunc(domainsuffix, handleReflect)
-	go serve("udp", "", "")
-	go serve("tcp", "", "")
+	go serve("udp", domainsuffix, TsigKey )
+	go serve("tcp", domainsuffix, TsigKey)
 }
