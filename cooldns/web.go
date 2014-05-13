@@ -59,11 +59,11 @@ func checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
 		errors = append(errors, "Secret Missing")
 	}
 	// Check if reCAPTCHA Challenge exists
-	if n.RcChal == "" {
+	if rcPublicKey != "" && n.RcChal == "" {
 		errors = append(errors, "reCAPTCHA challenge missing")
 	}
 	// Check if reCAPTCHA response exists
-	if n.RcResp == "" {
+	if rcPublicKey != "" && n.RcResp == "" {
 		errors = append(errors, "reCAPTCHA response missing")
 	}
 
@@ -292,15 +292,17 @@ func newDomain(db *CoolDB,
 		return
 	}
 	remoteip := strings.Split(req.RemoteAddr, ":")[0]
-	ok, err := ReCaptcha(remoteip, n.RcChal, n.RcResp)
-	if err != nil {
-		log.Println("NewDomain: Failed to verify reCAPTCHA:", err)
-		errHandler(500, []string{"Internal Server Error"}, nil)
-		return
-	}
-	if !ok {
-		errHandler(200, []string{"reCAPTCHA is wrong"}, &n)
-		return
+	if rcPublicKey != "" {
+		ok, err := ReCaptcha(remoteip, n.RcChal, n.RcResp)
+		if err != nil {
+			log.Println("NewDomain: Failed to verify reCAPTCHA:", err)
+			errHandler(500, []string{"Internal Server Error"}, nil)
+			return
+		}
+		if !ok {
+			errHandler(200, []string{"reCAPTCHA is wrong"}, &n)
+			return
+		}
 	}
 	// Create Authentication object
 	auth, err := NewAuth(n.Hostname, n.Secret)

@@ -35,13 +35,7 @@ var (
 
 func init() {
 	rcPublicKey = os.Getenv("COOLDNS_RC_PUB")
-	if rcPublicKey == "" {
-		log.Fatal("Error: reCAPTCHA public Key missing")
-	}
 	rcPrivateKey = os.Getenv("COOLDNS_RC_PRIV")
-	if rcPrivateKey == "" {
-		log.Fatal("Error: reCAPTCHA private Key missing")
-	}
 
 	pool = x509.NewCertPool()
 	loadCertPool(pool)
