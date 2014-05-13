@@ -152,6 +152,27 @@ func Register(db *CoolDB, r render.Render, reg Registration, errors binding.Erro
 	return fmt.Sprintln(reg)
 }
 
+func RunWeb(db *CoolDB) {
+	// Setup Martini
+	m := martini.Classic()
+	m.Map(db)
+	m.Use(render.Renderer())
+	m.Use(martini.Static("assets"))
+
+	// binding registration
+	regBinding := binding.Form(Registration{})
+
+	// update Handler for form api
+	m.Get("/nic/update", AuthHandler, regBinding, Register)
+	// Website
+	m.Get("/", Index)
+	m.Get("/update", Update)
+	// form api handlers
+	m.Post("/", binding.Form(WebNewDomain{}), FormApiDomainNew)
+	m.Post("/update", binding.Form(WebUpdateDomain{}), FormApiDomainUpdate)
+	m.Run()
+}
+
 func Run(filename string) {
 	log.Println("Starting coolDNS Server")
 
@@ -179,28 +200,11 @@ func Run(filename string) {
 		log.Println("Error adding user:", err)
 	}
 
-	// Setup Martini
-	m := martini.Classic()
-	m.Map(db)
-	m.Use(render.Renderer())
-	m.Use(martini.Static("assets"))
-
-	// binding registration
-	regBinding := binding.Form(Registration{})
-
-	// update Handler for form api
-	m.Get("/nic/update", AuthHandler, regBinding, Register)
-	// Website
-	m.Get("/", Index)
-	m.Get("/update", Update)
-	// form api handlers
-	m.Post("/", binding.Form(WebNewDomain{}), FormApiDomainNew)
-	m.Post("/update", binding.Form(WebUpdateDomain{}), FormApiDomainUpdate)
 
 	// Run the DNS server
 	go RunDns(db.Cache)
 
-	m.Run()
+	RunWeb(db)
 }
 
 func createDummyUser(name, secret string, db *CoolDB) error {
