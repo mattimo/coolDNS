@@ -3,5 +3,5 @@ package main
 import "./cooldns"
 
 func main() {
-	cooldns.Run()
+	cooldns.Run("cool.db")
 }

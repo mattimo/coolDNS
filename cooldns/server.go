@@ -152,10 +152,10 @@ func Register(db *CoolDB, r render.Render, reg Registration, errors binding.Erro
 	return fmt.Sprintln(reg)
 }
 
-func Run() {
+func Run(filename string) {
 	log.Println("Starting coolDNS Server")
 
-	db, err := NewCoolDB("cool.db")
+	db, err := NewCoolDB(filename)
 	if err != nil {
 		log.Fatal("Error Loading db:", err)
 	}
