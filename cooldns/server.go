@@ -152,12 +152,14 @@ func Register(db *CoolDB, r render.Render, reg Registration, errors binding.Erro
 	return fmt.Sprintln(reg)
 }
 
-func RunWeb(db *CoolDB) {
+func SetupWeb(db *CoolDB, static, templates string) (http.Handler){
 	// Setup Martini
 	m := martini.Classic()
 	m.Map(db)
-	m.Use(render.Renderer())
-	m.Use(martini.Static("assets"))
+	m.Use(render.Renderer(render.Options{
+				Directory: templates,
+			}))
+	m.Use(martini.Static(static))
 
 	// binding registration
 	regBinding := binding.Form(Registration{})
@@ -170,7 +172,7 @@ func RunWeb(db *CoolDB) {
 	// form api handlers
 	m.Post("/", binding.Form(WebNewDomain{}), FormApiDomainNew)
 	m.Post("/update", binding.Form(WebUpdateDomain{}), FormApiDomainUpdate)
-	m.Run()
+	return m
 }
 
 func Run(filename string) {
@@ -204,7 +206,11 @@ func Run(filename string) {
 	// Run the DNS server
 	go RunDns(db.Cache)
 
-	RunWeb(db)
+	handler := SetupWeb(db, "./assets", "templates")
+	err = http.ListenAndServe(":3000", handler)
+	if err != nil {
+		log.Fatal("Server Failed:", err)
+	}
 }
 
 func createDummyUser(name, secret string, db *CoolDB) error {
