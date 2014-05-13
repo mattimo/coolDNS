@@ -69,7 +69,7 @@ func returnAuthErr(res http.ResponseWriter, errMsg string) {
 	return
 }
 
-func AuthHandler(res http.ResponseWriter, req *http.Request) {
+func AuthHandler(db *CoolDB, res http.ResponseWriter, req *http.Request) {
 	// Get name and secret from auth
 	rAuthString := req.Header.Get("Authorization")
 	if rAuthString == "" {
@@ -111,7 +111,7 @@ func AuthHandler(res http.ResponseWriter, req *http.Request) {
 	// just return an error stating that the user does not exist. This is
 	// Totally ok because the username equals the domain name that is
 	// public anyway
-	a := DNSDB.GetUser(rName)
+	a := db.Cache.GetUser(rName)
 	if a == nil {
 		log.Println("No User for hostname:", rName)
 		returnAuthErr(res, "hostname does not exist")
@@ -160,7 +160,7 @@ func Run() {
 		log.Fatal("Error Loading db:", err)
 	}
 	defer db.Close()
-	// register on Kill Signal
+	// register DB close on Kill Signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Kill, syscall.SIGTERM, os.Interrupt)
 	go func() {
@@ -173,20 +173,13 @@ func Run() {
 		os.Exit(0)
 	}()
 
-	dnsCache, err := db.LoadAll()
-	if err != nil {
-		log.Fatal("Error Loading DNS Cache:", err)
-	}
-	userCache, err := db.LoadUsers()
-	if err != nil {
-		log.Fatal("Error Loading User Cache:", err)
-	}
-	DNSDB.LoadCache(dnsCache, userCache)
+	// preliminary for testing porpuses TODO: remove this
 	err = createDummyUser("doof"+domainsuffix, "12345678", db)
 	if err != nil {
 		log.Println("Error adding user:", err)
 	}
 
+	// Setup Martini
 	m := martini.Classic()
 	m.Map(db)
 	m.Use(render.Renderer())
@@ -205,7 +198,7 @@ func Run() {
 	m.Post("/update", binding.Form(WebUpdateDomain{}), FormApiDomainUpdate)
 
 	// Run the DNS server
-	go RunDns()
+	go RunDns(db.Cache)
 
 	m.Run()
 }

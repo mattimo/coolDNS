@@ -13,7 +13,12 @@ func init() {
 	TsigKey = os.Getenv("COOLDNS_TSIG_KEY")
 }
 
-func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
+// Hold a pointer to the actual DnsDB within the CoolDB object
+type DnsHandler struct {
+	db *DnsDB
+}
+
+func (h *DnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
 	defer func(w dns.ResponseWriter, m *dns.Msg) {
@@ -27,7 +32,7 @@ func handleReflect(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	for _, question := range r.Question {
-		entry := DNSDB.Get(question.Name)
+		entry := h.db.Get(question.Name)
 		if entry == nil {
 			return
 		}
@@ -110,8 +115,9 @@ func serve(net, name, secret string) {
 	}
 }
 
-func RunDns() {
-	dns.HandleFunc(domainsuffix, handleReflect)
+func RunDns(db *DnsDB) {
+	h := &DnsHandler{db : db}
+	dns.HandleFunc(domainsuffix, h.handleRequest)
 	go serve("udp", domainsuffix, TsigKey )
 	go serve("tcp", domainsuffix, TsigKey)
 }

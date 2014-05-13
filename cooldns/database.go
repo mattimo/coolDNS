@@ -14,6 +14,7 @@ import (
 type CoolDB struct {
 	sync.Mutex
 	c *sql.DB
+	Cache *DnsDB
 }
 
 const createCoolDNS string = `
@@ -72,7 +73,22 @@ func NewCoolDB(filename string) (*CoolDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &CoolDB{c: db}, nil
+	cooldb := &CoolDB{c: db}
+
+	// create and load Cache
+	cache := NewCache()
+	dnsCache, err := cooldb.LoadAll()
+	if err != nil {
+		log.Fatal("Error Loading DNS Cache:", err)
+	}
+	userCache, err := cooldb.LoadUsers()
+	if err != nil {
+		log.Fatal("Error Loading User Cache:", err)
+	}
+	cache.LoadCache(dnsCache, userCache)
+
+	cooldb.Cache = cache
+	return cooldb, nil
 }
 
 func (db *CoolDB) Close() error {
@@ -85,7 +101,7 @@ const dbRecSep = "\x1f"
 
 func (db *CoolDB) SaveEntry(e *Entry) error {
 	if !e.Offline {
-		DNSDB.Put(e)
+		db.Cache.Put(e)
 	}
 	db.Lock()
 	defer db.Unlock()
@@ -157,7 +173,7 @@ func (db *CoolDB) SaveEntry(e *Entry) error {
 }
 
 func (db *CoolDB) SaveAuth(auth *Auth) error {
-	DNSDB.PutUser(auth)
+	db.Cache.PutUser(auth)
 	db.Lock()
 	defer db.Unlock()
 

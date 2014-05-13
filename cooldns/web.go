@@ -206,7 +206,7 @@ func UpdateDomain(db *CoolDB,
 	}
 
 	// Get Auth
-	a := DNSDB.GetUser(n.Hostname)
+	a := db.Cache.GetUser(n.Hostname)
 	if a == nil {
 		errHandler(200, []string{"Hostname and Secret do not match"}, &n)
 		return

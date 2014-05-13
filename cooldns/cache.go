@@ -11,10 +11,6 @@ type DnsDB struct {
 	users map[string]*Auth
 }
 
-var (
-	DNSDB DnsDB
-)
-
 type MxEntry struct {
 	ip       string
 	priority int
@@ -30,9 +26,8 @@ type Entry struct {
 	Cname    string
 }
 
-func init() {
-
-	DNSDB = DnsDB{
+func NewCache() *DnsDB {
+	return &DnsDB{
 		db:    make(map[string]*Entry),
 		users: make(map[string]*Auth),
 	}
