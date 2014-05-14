@@ -15,7 +15,7 @@ func init() {
 
 // Hold a pointer to the actual DnsDB within the CoolDB object
 type DnsHandler struct {
-	db *DnsDB
+	db CoolDB
 }
 
 func (h *DnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -32,7 +32,7 @@ func (h *DnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	for _, question := range r.Question {
-		entry := h.db.Get(question.Name)
+		entry := h.db.GetEntry(question.Name)
 		if entry == nil {
 			return
 		}
@@ -115,7 +115,7 @@ func serve(net, name, secret string) {
 	}
 }
 
-func RunDns(db *DnsDB) {
+func RunDns(db CoolDB) {
 	h := &DnsHandler{db : db}
 	dns.HandleFunc(domainsuffix, h.handleRequest)
 	go serve("udp", domainsuffix, TsigKey )

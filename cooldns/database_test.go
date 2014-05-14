@@ -21,11 +21,11 @@ func getTmpFile() (string, error) {
 	return f.Name(), nil
 }
 
-func getDB(filename string) (*CoolDB, error) {
-	return NewCoolDB(filename)
+func getDB(filename string) (CoolDB, error) {
+	return NewSqliteCoolDB(filename)
 }
 
-func getTmpDB() (*CoolDB, error) {
+func getTmpDB() (CoolDB, error) {
 	tmpFileName, err := getTmpFile()
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func TestCacheCreation(t *testing.T) {
 	}
 
 	for _, e := range entries {
-		dbE := db.Cache.Get(e.Hostname)
+		dbE := db.GetEntry(e.Hostname)
 		if dbE == nil {
 			t.Error("Could not find DB entry:", e.Hostname)
 		}
@@ -163,7 +163,7 @@ func TestCacheRandomEntry(t *testing.T) {
 	}
 
 	for _, e := range randEntries {
-		dbE := db.Cache.Get(e.Hostname)
+		dbE := db.GetEntry(e.Hostname)
 		if dbE == nil {
 			t.Error("Could not find entry in cache:", e.Hostname)
 		}
@@ -205,7 +205,7 @@ func TestDatabaseRandomEntry(t *testing.T) {
 	}
 
 	for _, e := range randEntries {
-		dbE := rdb.Cache.Get(e.Hostname)
+		dbE := rdb.GetEntry(e.Hostname)
 		if dbE == nil {
 			t.Error("Could not find entry in DB:", e.Hostname)
 		}

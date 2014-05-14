@@ -32,13 +32,13 @@ type WebErrorHandler func(int, []string, interface{})
 // Web Success Handler function signature. Helps interface with success messages
 type WebSuccessHandler func([]string, interface{})
 
-func Index(db *CoolDB, r render.Render) {
+func Index(db CoolDB, r render.Render) {
 	r.HTML(200, "index", map[string]string{
 		"Rcpublic": rcPublicKey,
 		"Domain":   domainsuffix})
 }
 
-func Update(db *CoolDB, r render.Render) {
+func Update(db CoolDB, r render.Render) {
 	r.HTML(200, "update", map[string]string{
 		"Rcpublic": rcPublicKey,
 		"Domain":   domainsuffix})
@@ -102,7 +102,7 @@ type newView struct {
 	F        *WebNewDomain // Prefilled items
 }
 
-func FormApiDomainNew(db *CoolDB,
+func FormApiDomainNew(db CoolDB,
 	r render.Render,
 	n WebNewDomain,
 	errors binding.Errors,
@@ -141,7 +141,7 @@ type updateView struct {
 	Success []string         // Success string
 }
 
-func FormApiDomainUpdate(db *CoolDB,
+func FormApiDomainUpdate(db CoolDB,
 	r render.Render,
 	n WebUpdateDomain,
 	errors binding.Errors,
@@ -190,7 +190,7 @@ func extractRecords(input string) (exist bool, records []string) {
 	return len(records) != 0, records
 }
 
-func UpdateDomain(db *CoolDB,
+func UpdateDomain(db CoolDB,
 	r render.Render,
 	n WebUpdateDomain,
 	errors binding.Errors,
@@ -206,7 +206,7 @@ func UpdateDomain(db *CoolDB,
 	}
 
 	// Get Auth
-	a := db.Cache.GetUser(n.Hostname)
+	a := db.GetAuth(n.Hostname)
 	if a == nil {
 		errHandler(200, []string{"Hostname and Secret do not match"}, &n)
 		return
@@ -278,7 +278,7 @@ func UpdateDomain(db *CoolDB,
 
 }
 
-func newDomain(db *CoolDB,
+func newDomain(db CoolDB,
 	r render.Render,
 	n WebNewDomain,
 	errors binding.Errors,

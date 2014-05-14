@@ -1,7 +1,6 @@
 package cooldns
 
 import (
-	"net"
 	"sync"
 )
 
@@ -9,21 +8,6 @@ type DnsDB struct {
 	sync.RWMutex
 	db    map[string]*Entry
 	users map[string]*Auth
-}
-
-type MxEntry struct {
-	ip       string
-	priority int
-}
-
-type Entry struct {
-	Hostname string
-	Ip6s     []net.IP
-	Ip4s     []net.IP
-	Offline  bool
-	Txts     []string
-	Mxs      []MxEntry
-	Cname    string
 }
 
 func NewCache() *DnsDB {

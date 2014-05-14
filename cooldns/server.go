@@ -69,7 +69,7 @@ func returnAuthErr(res http.ResponseWriter, errMsg string) {
 	return
 }
 
-func AuthHandler(db *CoolDB, res http.ResponseWriter, req *http.Request) {
+func AuthHandler(db CoolDB, res http.ResponseWriter, req *http.Request) {
 	// Get name and secret from auth
 	rAuthString := req.Header.Get("Authorization")
 	if rAuthString == "" {
@@ -111,7 +111,7 @@ func AuthHandler(db *CoolDB, res http.ResponseWriter, req *http.Request) {
 	// just return an error stating that the user does not exist. This is
 	// Totally ok because the username equals the domain name that is
 	// public anyway
-	a := db.Cache.GetUser(rName)
+	a := db.GetAuth(rName)
 	if a == nil {
 		log.Println("No User for hostname:", rName)
 		returnAuthErr(res, "hostname does not exist")
@@ -127,7 +127,7 @@ func AuthHandler(db *CoolDB, res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func Register(db *CoolDB, r render.Render, reg Registration, errors binding.Errors) string {
+func Register(db CoolDB, r render.Render, reg Registration, errors binding.Errors) string {
 	if errors != nil {
 		return fmt.Sprintf("%v", errors)
 	}
@@ -152,7 +152,7 @@ func Register(db *CoolDB, r render.Render, reg Registration, errors binding.Erro
 	return fmt.Sprintln(reg)
 }
 
-func SetupWeb(db *CoolDB, static, templates string) (http.Handler){
+func SetupWeb(db CoolDB, static, templates string) (http.Handler){
 	// Setup Martini
 	m := martini.Classic()
 	m.Map(db)
@@ -178,7 +178,7 @@ func SetupWeb(db *CoolDB, static, templates string) (http.Handler){
 func Run(filename string) {
 	log.Println("Starting coolDNS Server")
 
-	db, err := NewCoolDB(filename)
+	db, err := NewSqliteCoolDB(filename)
 	if err != nil {
 		log.Fatal("Error Loading db:", err)
 	}
@@ -204,7 +204,7 @@ func Run(filename string) {
 
 
 	// Run the DNS server
-	go RunDns(db.Cache)
+	go RunDns(db)
 
 	handler := SetupWeb(db, "./assets", "templates")
 	err = http.ListenAndServe(":3000", handler)
@@ -213,7 +213,7 @@ func Run(filename string) {
 	}
 }
 
-func createDummyUser(name, secret string, db *CoolDB) error {
+func createDummyUser(name, secret string, db CoolDB) error {
 	a, err := NewAuth(name, secret)
 	if err != nil {
 		return err
