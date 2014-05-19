@@ -9,6 +9,14 @@ Fully Qualified Cool Domain Names
 
 * `COOLDNS_SUFFIX` The cool dns domain suffix
 
+InfluxDB specific configuration, sending metrics to Influx only works if all 
+of the following values are set.
+
+* `COOLDNS_INFLUX_HOST` Influx Hostname with <addredd>:<port>
+* `COOLDNS_INFLUX_DB` Database name
+* `COOLDNS_INFLUX_USER` User name
+* `COOLDNS_INFLUX_PASS` Password
+
 ## Testing
 
 use curl to test
