@@ -2,7 +2,6 @@ package cooldns
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/codegangsta/martini-contrib/render"
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/binding"
@@ -127,9 +126,10 @@ func AuthHandler(db CoolDB, res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func Register(db CoolDB, r render.Render, reg Registration, errors binding.Errors) string {
+func Register(db CoolDB, r render.Render, reg Registration, errors binding.Errors) {
 	if errors != nil {
-		return fmt.Sprintf("%v", errors)
+		r.JSON(400, errors)
+		return
 	}
 	// Set Offline flag, does nothing yet but it's nice to have
 	var offline bool
@@ -148,8 +148,11 @@ func Register(db CoolDB, r render.Render, reg Registration, errors binding.Error
 	err := db.SaveEntry(e)
 	if err != nil {
 		log.Println("Error saving element:", err)
+		r.JSON(500, "error")
+		return
 	}
-	return fmt.Sprintln(reg)
+	r.JSON(200, "ok")
+	return
 }
 
 func SetupWeb(db CoolDB, static, templates string, metric MetricsHandle) http.Handler {
