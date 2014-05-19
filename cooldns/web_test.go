@@ -1,11 +1,11 @@
 package cooldns
 
 import (
-	"testing"
+	"bytes"
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"bytes"
+	"testing"
 )
 
 func createTestServer(t *testing.T) (*httptest.Server, *bytes.Buffer) {
@@ -24,7 +24,7 @@ func createTestServer(t *testing.T) (*httptest.Server, *bytes.Buffer) {
 	log.SetOutput(logBuf)
 	log.Println("##### TESTING LOG BUFFER #####")
 
-	handler := SetupWeb(db, "../assets", "../templates")
+	handler := SetupWeb(db, "../assets", "../templates", NewDummyMetrics())
 	return httptest.NewServer(handler), logBuf
 }
 
@@ -32,7 +32,7 @@ func TestGetIndex(t *testing.T) {
 	server, logBuf := createTestServer(t)
 	defer server.Close()
 
-	resp, err := http.Get(server.URL+"/")
+	resp, err := http.Get(server.URL + "/")
 	if err != nil {
 		t.Log(logBuf.String())
 		t.Error("Failed to connect to server")

@@ -3,8 +3,8 @@ package cooldns
 import (
 	"github.com/miekg/dns"
 	"log"
-	"time"
 	"os"
+	"time"
 )
 
 var TsigKey string
@@ -15,10 +15,12 @@ func init() {
 
 // Hold a pointer to the actual DnsDB within the CoolDB object
 type DnsHandler struct {
-	db CoolDB
+	db     CoolDB
+	metric MetricsHandle
 }
 
 func (h *DnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
+	h.metric.DnsEvent()
 	m := new(dns.Msg)
 	m.SetReply(r)
 	defer func(w dns.ResponseWriter, m *dns.Msg) {
@@ -115,9 +117,9 @@ func serve(net, name, secret string) {
 	}
 }
 
-func RunDns(db CoolDB) {
-	h := &DnsHandler{db : db}
+func RunDns(db CoolDB, metric MetricsHandle) {
+	h := &DnsHandler{db: db, metric: metric}
 	dns.HandleFunc(domainsuffix, h.handleRequest)
-	go serve("udp", domainsuffix, TsigKey )
+	go serve("udp", domainsuffix, TsigKey)
 	go serve("tcp", domainsuffix, TsigKey)
 }

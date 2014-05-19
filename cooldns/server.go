@@ -152,13 +152,20 @@ func Register(db CoolDB, r render.Render, reg Registration, errors binding.Error
 	return fmt.Sprintln(reg)
 }
 
-func SetupWeb(db CoolDB, static, templates string) (http.Handler){
+func SetupWeb(db CoolDB, static, templates string, metric MetricsHandle) http.Handler {
 	// Setup Martini
 	m := martini.Classic()
 	m.Map(db)
+
+	// Call metrics on every Request
+	m.Use(func(c martini.Context) {
+		metric.HttpEvent()
+		metric.HttpTime(c.Next)
+	})
+
 	m.Use(render.Renderer(render.Options{
-				Directory: templates,
-			}))
+		Directory: templates,
+	}))
 	m.Use(martini.Static(static))
 
 	// binding registration
@@ -202,11 +209,19 @@ func Run(filename string) {
 		log.Println("Error adding user:", err)
 	}
 
+	// Create Metrics Handler
+	var metrics MetricsHandle
+	influxConfig := LoadInfluxConfig()
+	if influxConfig != nil {
+		metrics = NewInfluxMetrics(influxConfig)
+	} else {
+		metrics = NewDummyMetrics()
+	}
 
 	// Run the DNS server
-	go RunDns(db)
+	go RunDns(db, metrics)
 
-	handler := SetupWeb(db, "./assets", "templates")
+	handler := SetupWeb(db, "./assets", "templates", metrics)
 	err = http.ListenAndServe(":3000", handler)
 	if err != nil {
 		log.Fatal("Server Failed:", err)
