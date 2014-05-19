@@ -1,14 +1,14 @@
 package cooldns
 
 import (
-	"testing"
-	"io/ioutil"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
-	"fmt"
-	"strings"
 	"reflect"
+	"strings"
+	"testing"
 )
 
 func getTmpFile() (string, error) {
@@ -34,22 +34,22 @@ func getTmpDB() (CoolDB, error) {
 }
 
 var entries = []*Entry{
-		&Entry{Hostname: "test1.ist.nicht.cool.",
-			Ip4s: []net.IP{net.ParseIP("192.168.0.1")},
-			Offline: false,
-			Txts: []string{"Hallo Welt", "Zweite Zeile"},
-			Mxs: []MxEntry{
-				MxEntry{"mail.deine.mutter.de", 1000},
-			},
+	&Entry{Hostname: "test1.ist.nicht.cool.",
+		Ip4s:    []net.IP{net.ParseIP("192.168.0.1")},
+		Offline: false,
+		Txts:    []string{"Hallo Welt", "Zweite Zeile"},
+		Mxs: []MxEntry{
+			MxEntry{"mail.deine.mutter.de", 1000},
 		},
-		&Entry{Hostname: "test2.ist.nicht.cool.",
-			Ip4s: []net.IP{net.ParseIP("192.168.0.2")},
-			Offline: false,
-			Txts: []string{"Hallo Welt", "Zweite Zeile"},
-			Mxs: []MxEntry{
-				MxEntry{"mail.deine.mutter.de", 1000},
-			},
+	},
+	&Entry{Hostname: "test2.ist.nicht.cool.",
+		Ip4s:    []net.IP{net.ParseIP("192.168.0.2")},
+		Offline: false,
+		Txts:    []string{"Hallo Welt", "Zweite Zeile"},
+		Mxs: []MxEntry{
+			MxEntry{"mail.deine.mutter.de", 1000},
 		},
+	},
 }
 
 func TestCacheCreation(t *testing.T) {
@@ -105,7 +105,7 @@ func getRandIP(b []byte) net.IP {
 		}
 		ipPA := make([]string, 8)
 		for i, _ := range ipPA {
-			ipPA[i] = ipA[2*i]+ipA[2*1+1]
+			ipPA[i] = ipA[2*i] + ipA[2*1+1]
 		}
 		ip = strings.Join(ipPA, ":")
 	}
@@ -129,11 +129,11 @@ func genRandEntry() *Entry {
 
 	return &Entry{
 		Hostname: fmt.Sprintf("%x.ist.nicht.cool.", hostnameRand),
-		Cname: fmt.Sprintf("%x", cnameRand),
-		Ip4s: []net.IP{getRandIP(ipv4Rand)},
-		Ip6s: []net.IP{getRandIP(ipv6Rand)},
-		Offline: false,
-		Txts: []string{"Hallo Welt", "Zweite Zeile"},
+		Cname:    fmt.Sprintf("%x", cnameRand),
+		Ip4s:     []net.IP{getRandIP(ipv4Rand)},
+		Ip6s:     []net.IP{getRandIP(ipv6Rand)},
+		Offline:  false,
+		Txts:     []string{"Hallo Welt", "Zweite Zeile"},
 		Mxs: []MxEntry{
 			MxEntry{"mail.deine.mutter.de", 1000},
 		},
@@ -151,7 +151,7 @@ func TestCacheRandomEntry(t *testing.T) {
 	defer db.Close()
 
 	var randEntries []*Entry
-	for i:=0; i<randEntryC; i++ {
+	for i := 0; i < randEntryC; i++ {
 		randEntries = append(randEntries, genRandEntry())
 	}
 
@@ -174,7 +174,6 @@ func TestCacheRandomEntry(t *testing.T) {
 
 }
 
-
 func TestDatabaseRandomEntry(t *testing.T) {
 	tmpFile, err := getTmpFile()
 	if err != nil {
@@ -186,7 +185,7 @@ func TestDatabaseRandomEntry(t *testing.T) {
 	}
 
 	var randEntries []*Entry
-	for i:=0; i<randEntryC; i++ {
+	for i := 0; i < randEntryC; i++ {
 		randEntries = append(randEntries, genRandEntry())
 	}
 

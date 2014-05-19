@@ -2,18 +2,18 @@ package cooldns
 
 import (
 	_ "code.google.com/p/gosqlite/sqlite3"
-	"sync"
 	"database/sql"
 	"fmt"
 	"log"
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type SqliteCoolDB struct {
 	sync.Mutex
-	c *sql.DB
+	c     *sql.DB
 	cache *DnsDB
 }
 
