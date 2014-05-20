@@ -141,10 +141,18 @@ func Register(db CoolDB, r render.Render, reg Registration, errors binding.Error
 
 	e := &Entry{
 		Hostname: reg.Hostname,
-		Ip4s:     []net.IP{net.ParseIP(reg.MyIp)},
 		Offline:  offline,
 		Txts:     []string{reg.Txt},
 	}
+
+	// Check if ipv4 or ipv6, OK thee is no really sane way to do this at the moment
+	ip := net.ParseIP(reg.MyIp)
+	if strings.Contains(reg.MyIp, ":") {
+		e.Ip6s = append(e.Ip6s, ip)
+	} else {
+		e.Ip4s = append(e.Ip4s, ip)
+	}
+
 	err := db.SaveEntry(e)
 	if err != nil {
 		log.Println("Error saving element:", err)
