@@ -48,6 +48,9 @@ func checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
 	ok = false
 	// Check if Hostname is fqdn with needed suffix and a minimum of two
 	// characters as a sub domain
+	if !strings.HasSuffix(n.Hostname, ".") {
+		n.Hostname = n.Hostname + "."
+	}
 	if !strings.HasSuffix(n.Hostname, "."+domainsuffix) {
 		n.Hostname = n.Hostname + "." + domainsuffix
 	}
@@ -78,6 +81,9 @@ func checkUpdateDomain(n *WebUpdateDomain) (ok bool, errors []string) {
 	ok = false
 	// Check if Hostname is fqdn with needed suffix and a minimum of two
 	// characters as a sub domain
+	if !strings.HasSuffix(n.Hostname, ".") {
+		n.Hostname = n.Hostname + "."
+	}
 	if !strings.HasSuffix(n.Hostname, "."+domainsuffix) {
 		n.Hostname = n.Hostname + "." + domainsuffix
 	}
@@ -236,7 +242,8 @@ func UpdateDomain(db CoolDB,
 		for _, ipString := range Ips {
 			ip := net.ParseIP(ipString)
 			if ip == nil {
-				continue //TODO fail louder!
+				errHandler(200, []string{"Malformatted Ip Address"}, &n)
+				return
 			}
 			if strings.Contains(ipString, ":") {
 				entry.Ip6s = append(entry.Ip6s, ip)
@@ -252,7 +259,8 @@ func UpdateDomain(db CoolDB,
 			mxa := strings.Split(mx, " ")
 			prio, err := strconv.ParseInt(mxa[0], 10, 0)
 			if err != nil {
-				break
+				errHandler(200, []string{"Malformatted MX Entry"}, &n)
+				return
 			}
 			mxName := fqdn(mxa[1])
 			entry.Mxs = append(entry.Mxs, MxEntry{
@@ -304,6 +312,11 @@ func newDomain(db CoolDB,
 			return
 		}
 	}
+	// Check is Domain already exists
+	if db.GetEntry(n.Hostname) != nil {
+		errHandler(200, []string{"Sorry, Domain already in use"}, &n)
+		return
+	}
 	// Create Authentication object
 	auth, err := NewAuth(n.Hostname, n.Secret)
 	if err != nil && err != AuthConstraintsNotMet {
@@ -313,7 +326,7 @@ func newDomain(db CoolDB,
 	}
 	// Check if contrainsts were met
 	if err == AuthConstraintsNotMet {
-		errHandler(200, []string{"Auth Constaints not met"}, &n)
+		errHandler(200, []string{"Auth Constraints not met"}, &n)
 		return
 	}
 	// Save Auth object
