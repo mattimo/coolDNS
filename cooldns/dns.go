@@ -3,23 +3,27 @@ package cooldns
 import (
 	"github.com/miekg/dns"
 	"log"
-	"os"
 	"time"
 )
 
-var TsigKey string
-
-func init() {
-	TsigKey = os.Getenv("COOLDNS_TSIG_KEY")
+// Configuration for the DNS server
+type DnsServerConfig struct {
+	Domain string // fqdn of the full Domain name
+	Listen string // Dns server listener Interface <interface>:<port>. default is ":8053"
+	// Tsig Key according to the tsig spec (base64 string)
+	// If not set, tsig will not be activated.
+	TsigKey string
 }
 
 // Hold a pointer to the actual DnsDB within the CoolDB object
-type DnsHandler struct {
-	db     CoolDB
+type dnsHandler struct {
+	db                      CoolDB
+	domain, listen, tsigkey string
+	// Metrics Handle
 	metric MetricsHandle
 }
 
-func (h *DnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
+func (h *dnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	h.metric.DnsEvent()
 	m := new(dns.Msg)
 	m.SetReply(r)
@@ -29,8 +33,8 @@ func (h *DnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			log.Println("WOOPS ERRRROOOORR:", err)
 		}
 	}(w, m)
-	if TsigKey != "" {
-		m.SetTsig(domainsuffix, dns.HmacSHA256, 300, time.Now().Unix())
+	if h.tsigkey != "" {
+		m.SetTsig(h.domain, dns.HmacSHA256, 300, time.Now().Unix())
 	}
 
 	for _, question := range r.Question {
@@ -100,26 +104,52 @@ func (h *DnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 
 }
 
-func serve(net, listen, name, secret string) {
-	switch name {
-	case "":
-		server := &dns.Server{Pool: false, Addr: listen, Net: net, TsigSecret: nil}
-		err := server.ListenAndServe()
-		if err != nil {
-			log.Printf("Failed to setup the "+net+" server: %s\n", err.Error())
-		}
-	default:
-		server := &dns.Server{Pool: false, Addr: listen, Net: net, TsigSecret: map[string]string{name: secret}}
-		err := server.ListenAndServe()
-		if err != nil {
-			log.Printf("Failed to setup the "+net+" server: %s\n", err.Error())
-		}
+// Takes Either tcp or udp string
+func (h *dnsHandler) serve(net string) {
+	server := &dns.Server{Pool: false,
+		Addr: h.listen,
+		Net:  net,
+		TsigSecret: map[string]string{
+			h.domain: h.tsigkey,
+		},
+	}
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Fatal("Failed to setup the "+net+" server: %s\n", err.Error())
 	}
 }
 
-func RunDns(listen string, db CoolDB, metric MetricsHandle) {
-	h := &DnsHandler{db: db, metric: metric}
-	dns.HandleFunc(domainsuffix, h.handleRequest)
-	go serve("udp", listen, domainsuffix, TsigKey)
-	go serve("tcp", listen, domainsuffix, TsigKey)
+// Run DNS Server with given config.
+//
+// A configuration is sufficient if it contains a Domain name, a db mustbe
+// supplied but the metricsHandle can be nil
+func RunDns(config *DnsServerConfig, db CoolDB, metric MetricsHandle) {
+	h := new(dnsHandler)
+	if db == nil {
+		log.Fatal("No database supplied")
+	}
+	h.db = db
+
+	if metric != nil {
+		h.metric = metric
+	} else {
+		h.metric = NewDummyMetrics()
+	}
+
+	if config.Domain == "" {
+		log.Fatal("No Domain supplied")
+	}
+	h.domain = config.Domain
+
+	if config.Listen != "" {
+		h.listen = config.Listen
+	} else {
+		h.listen = ":8053"
+	}
+
+	h.tsigkey = config.TsigKey
+
+	dns.HandleFunc(config.Domain, h.handleRequest)
+	go h.serve("udp")
+	go h.serve("tcp")
 }

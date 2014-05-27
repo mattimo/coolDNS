@@ -3,5 +3,10 @@ package main
 import "./cooldns"
 
 func main() {
-	cooldns.Run(":8053", "cool.db")
+	config := cooldns.LoadConfig()
+	config.DbFile = "cool.db"
+	if config.Domain == "" {
+		config.SetDomain("ist.nicht.cool.")
+	}
+	cooldns.Run(config)
 }

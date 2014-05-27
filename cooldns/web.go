@@ -10,6 +10,20 @@ import (
 	"strings"
 )
 
+type Web struct {
+	Domain    string
+	RcPubKey  string
+	RcPrivKey string
+}
+
+func NewWeb(c *WebConfig) *Web {
+	return &Web{
+		Domain:    c.Domain,
+		RcPubKey:  c.RcPubKey,
+		RcPrivKey: c.RcPrivKey,
+	}
+}
+
 type WebNewDomain struct {
 	Hostname string `json:"hostname" form:"domain"`
 	Secret   string `json:"secret" form:"secret"`
@@ -32,29 +46,29 @@ type WebErrorHandler func(int, []string, interface{})
 // Web Success Handler function signature. Helps interface with success messages
 type WebSuccessHandler func([]string, interface{})
 
-func Index(db CoolDB, r render.Render) {
+func (w *Web) Index(db CoolDB, r render.Render) {
 	r.HTML(200, "index", map[string]string{
-		"Rcpublic": rcPublicKey,
-		"Domain":   domainsuffix})
+		"Rcpublic": w.RcPubKey,
+		"Domain":   w.Domain})
 }
 
-func Update(db CoolDB, r render.Render) {
+func (w *Web) Update(db CoolDB, r render.Render) {
 	r.HTML(200, "update", map[string]string{
-		"Rcpublic": rcPublicKey,
-		"Domain":   domainsuffix})
+		"Rcpublic": w.RcPubKey,
+		"Domain":   w.Domain})
 }
 
-func checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
+func (w *Web) checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
 	ok = false
 	// Check if Hostname is fqdn with needed suffix and a minimum of two
 	// characters as a sub domain
 	if !strings.HasSuffix(n.Hostname, ".") {
 		n.Hostname = n.Hostname + "."
 	}
-	if !strings.HasSuffix(n.Hostname, "."+domainsuffix) {
-		n.Hostname = n.Hostname + "." + domainsuffix
+	if !strings.HasSuffix(n.Hostname, "."+w.Domain) {
+		n.Hostname = n.Hostname + "." + w.Domain
 	}
-	if len(strings.TrimSuffix(n.Hostname, "."+domainsuffix)) < 2 {
+	if len(strings.TrimSuffix(n.Hostname, "."+w.Domain)) < 2 {
 		errors = append(errors, "Sub domain to short")
 	}
 	// Check if secret exists
@@ -62,11 +76,11 @@ func checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
 		errors = append(errors, "Secret Missing")
 	}
 	// Check if reCAPTCHA Challenge exists
-	if rcPublicKey != "" && n.RcChal == "" {
+	if w.RcPubKey != "" && n.RcChal == "" {
 		errors = append(errors, "reCAPTCHA challenge missing")
 	}
 	// Check if reCAPTCHA response exists
-	if rcPublicKey != "" && n.RcResp == "" {
+	if w.RcPubKey != "" && n.RcResp == "" {
 		errors = append(errors, "reCAPTCHA response missing")
 	}
 
@@ -77,17 +91,17 @@ func checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
 	return
 }
 
-func checkUpdateDomain(n *WebUpdateDomain) (ok bool, errors []string) {
+func (w *Web) checkUpdateDomain(n *WebUpdateDomain) (ok bool, errors []string) {
 	ok = false
 	// Check if Hostname is fqdn with needed suffix and a minimum of two
 	// characters as a sub domain
 	if !strings.HasSuffix(n.Hostname, ".") {
 		n.Hostname = n.Hostname + "."
 	}
-	if !strings.HasSuffix(n.Hostname, "."+domainsuffix) {
-		n.Hostname = n.Hostname + "." + domainsuffix
+	if !strings.HasSuffix(n.Hostname, "."+w.Domain) {
+		n.Hostname = n.Hostname + "." + w.Domain
 	}
-	if len(strings.TrimSuffix(n.Hostname, "."+domainsuffix)) < 2 {
+	if len(strings.TrimSuffix(n.Hostname, "."+w.Domain)) < 2 {
 		errors = append(errors, "Sub domain to short")
 	}
 	// Check if secret exists
@@ -108,7 +122,7 @@ type newView struct {
 	F        *WebNewDomain // Prefilled items
 }
 
-func FormApiDomainNew(db CoolDB,
+func (w *Web) FormApiDomainNew(db CoolDB,
 	r render.Render,
 	n WebNewDomain,
 	errors binding.Errors,
@@ -116,10 +130,10 @@ func FormApiDomainNew(db CoolDB,
 
 	errHandler := func(errCode int, errors []string, content interface{}) {
 		vContent := content.(*WebNewDomain)
-		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+domainsuffix)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+w.Domain)
 		view := &newView{
-			Domain:   domainsuffix,
-			Rcpublic: rcPublicKey,
+			Domain:   w.Domain,
+			Rcpublic: w.RcPubKey,
 			Err:      errors,
 			F:        vContent,
 		}
@@ -128,16 +142,16 @@ func FormApiDomainNew(db CoolDB,
 
 	success := func(success []string, content interface{}) {
 		vContent := content.(*WebUpdateDomain)
-		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+domainsuffix)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+w.Domain)
 		view := &updateView{
-			Domain:  domainsuffix,
+			Domain:  w.Domain,
 			Success: success,
 			F:       vContent,
 		}
 		r.HTML(200, "update", view)
 	}
 
-	newDomain(db, r, n, errors, req, errHandler, success)
+	w.newDomain(db, r, n, errors, req, errHandler, success)
 }
 
 type updateView struct {
@@ -147,7 +161,7 @@ type updateView struct {
 	Success []string         // Success string
 }
 
-func FormApiDomainUpdate(db CoolDB,
+func (w *Web) FormApiDomainUpdate(db CoolDB,
 	r render.Render,
 	n WebUpdateDomain,
 	errors binding.Errors,
@@ -155,9 +169,9 @@ func FormApiDomainUpdate(db CoolDB,
 
 	errHandler := func(errCode int, errors []string, content interface{}) {
 		vContent := content.(*WebUpdateDomain)
-		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+domainsuffix)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+w.Domain)
 		view := &updateView{
-			Domain: domainsuffix,
+			Domain: w.Domain,
 			Err:    errors,
 			F:      vContent,
 		}
@@ -165,16 +179,16 @@ func FormApiDomainUpdate(db CoolDB,
 	}
 	success := func(success []string, content interface{}) {
 		vContent := content.(*WebUpdateDomain)
-		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+domainsuffix)
+		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+w.Domain)
 		view := &updateView{
-			Domain:  domainsuffix,
+			Domain:  w.Domain,
 			Success: success,
 			F:       vContent,
 		}
 		r.HTML(200, "update", view)
 	}
 
-	UpdateDomain(db, r, n, errors, req, errHandler, success)
+	w.UpdateDomain(db, r, n, errors, req, errHandler, success)
 }
 
 func fqdn(s string) string {
@@ -196,7 +210,7 @@ func extractRecords(input string) (exist bool, records []string) {
 	return len(records) != 0, records
 }
 
-func UpdateDomain(db CoolDB,
+func (w *Web) UpdateDomain(db CoolDB,
 	r render.Render,
 	n WebUpdateDomain,
 	errors binding.Errors,
@@ -205,7 +219,7 @@ func UpdateDomain(db CoolDB,
 	successHandler WebSuccessHandler) {
 
 	// Check object for sanity
-	ok, nerrors := checkUpdateDomain(&n)
+	ok, nerrors := w.checkUpdateDomain(&n)
 	if !ok {
 		errHandler(200, nerrors, &n)
 		return
@@ -286,7 +300,7 @@ func UpdateDomain(db CoolDB,
 
 }
 
-func newDomain(db CoolDB,
+func (w *Web) newDomain(db CoolDB,
 	r render.Render,
 	n WebNewDomain,
 	errors binding.Errors,
@@ -294,14 +308,14 @@ func newDomain(db CoolDB,
 	errHandler WebErrorHandler,
 	successHandler WebSuccessHandler) {
 
-	ok, nerrors := checkNewDomain(&n)
+	ok, nerrors := w.checkNewDomain(&n)
 	if !ok {
 		errHandler(200, nerrors, &n)
 		return
 	}
 	remoteip := strings.Split(req.RemoteAddr, ":")[0]
-	if rcPublicKey != "" {
-		ok, err := ReCaptcha(remoteip, n.RcChal, n.RcResp)
+	if w.RcPubKey != "" {
+		ok, err := ReCaptcha(remoteip, n.RcChal, n.RcResp, w.RcPrivKey)
 		if err != nil {
 			log.Println("NewDomain: Failed to verify reCAPTCHA:", err)
 			errHandler(500, []string{"Internal Server Error"}, nil)
@@ -348,7 +362,7 @@ func newDomain(db CoolDB,
 		return
 	}
 	update := &WebUpdateDomain{
-		Hostname: strings.TrimSuffix(n.Hostname, domainsuffix),
+		Hostname: strings.TrimSuffix(n.Hostname, w.Domain),
 		Secret:   n.Secret,
 	}
 	successHandler([]string{"Creation of new domain " + update.Hostname + " was successful"}, update)

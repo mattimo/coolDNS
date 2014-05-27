@@ -3,7 +3,6 @@ package cooldns
 import (
 	"github.com/rcrowley/go-metrics"
 	"github.com/rcrowley/go-metrics/influxdb"
-	"os"
 )
 
 type MetricsHandle interface {
@@ -13,31 +12,12 @@ type MetricsHandle interface {
 	HttpTime(func())
 }
 
+// Configuration of the InfluxDB host where all metrics are stored in
 type InfluxConfig struct {
-	Host     string
-	Database string
+	Host     string // Hostname:port of the Database
+	Database string // Database name
 	Username string
 	Password string
-}
-
-func LoadInfluxConfig() *InfluxConfig {
-	host := os.Getenv("COOLDNS_INFLUX_HOST")
-	database := os.Getenv("COOLDNS_INFLUX_DB")
-	user := os.Getenv("COOLDNS_INFLUX_USER")
-	password := os.Getenv("COOLDNS_INFLUX_PASS")
-	if host == "" ||
-		database == "" ||
-		user == "" ||
-		password == "" {
-
-		return nil
-	}
-	return &InfluxConfig{
-		Host:     host,
-		Database: database,
-		Username: user,
-		Password: password,
-	}
 }
 
 type InfluxMHandle struct {

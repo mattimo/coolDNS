@@ -17,9 +17,6 @@ const (
 )
 
 var (
-	rcPublicKey  string
-	rcPrivateKey string
-
 	pool *x509.CertPool
 	// locations to search for bundled ssl certfiles
 	certSearch []string = []string{"/etc/ssl/cert.pem", // Recomended by the go doc
@@ -34,9 +31,6 @@ var (
 )
 
 func init() {
-	rcPublicKey = os.Getenv("COOLDNS_RC_PUB")
-	rcPrivateKey = os.Getenv("COOLDNS_RC_PRIV")
-
 	pool = x509.NewCertPool()
 	loadCertPool(pool)
 
@@ -74,10 +68,10 @@ func loadCertPool(pool *x509.CertPool) {
 	}
 }
 
-func checkReCaptcha(remoteip, challenge, response string) (string, error) {
+func checkReCaptcha(remoteip, challenge, response, privKey string) (string, error) {
 	res, err := client.PostForm(reCaptchaURL,
 		url.Values{
-			"privatekey": {rcPrivateKey},
+			"privatekey": {privKey},
 			"remoteip":   {remoteip},
 			"challenge":  {challenge},
 			"response":   {response}})
@@ -92,8 +86,8 @@ func checkReCaptcha(remoteip, challenge, response string) (string, error) {
 	return string(body), nil
 }
 
-func ReCaptcha(remoteip, challenge, response string) (bool, error) {
-	answer, err := checkReCaptcha(remoteip, challenge, response)
+func ReCaptcha(remoteip, challenge, response, privKey string) (bool, error) {
+	answer, err := checkReCaptcha(remoteip, challenge, response, privKey)
 	if err != nil {
 		return false, err
 	}

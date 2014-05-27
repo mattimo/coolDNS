@@ -14,22 +14,19 @@ import (
 	"syscall"
 )
 
-var (
-	domainsuffix string = "ist.nicht.cool."
-)
+type WebConfig struct {
+	Domain    string // fqdn of the full Domain name
+	Resources string // Directory where all resources can be found. Default "./"
+	Listen    string // Listener <interface>:<port>. Default ":3000"
+	RcPubKey  string // reCaptcha public key
+	RcPrivKey string // reCaptcha private key
+}
 
 type Registration struct {
 	Hostname string `form:"hostname"`
 	MyIp     string `form:"myip"`
 	Offline  string `form:"offline"`
 	Txt      string `form:"txt"`
-}
-
-func init() {
-	newsuffix := os.Getenv("COOLDNS_SUFFIX")
-	if newsuffix != "" {
-		domainsuffix = newsuffix
-	}
 }
 
 func (r *Registration) Validate(errors binding.Errors, req *http.Request) binding.Errors {
@@ -163,7 +160,7 @@ func Register(db CoolDB, r render.Render, reg Registration, errors binding.Error
 	return
 }
 
-func SetupWeb(db CoolDB, static, templates string, metric MetricsHandle) http.Handler {
+func SetupWeb(config *WebConfig, db CoolDB, metric MetricsHandle) http.Handler {
 	// Setup Martini
 	m := martini.Classic()
 	m.Map(db)
@@ -175,30 +172,32 @@ func SetupWeb(db CoolDB, static, templates string, metric MetricsHandle) http.Ha
 	})
 
 	m.Use(render.Renderer(render.Options{
-		Directory: templates,
+		Directory: config.Resources + "templates",
 	}))
-	m.Use(martini.Static(static))
+	m.Use(martini.Static(config.Resources + "assets"))
 
 	// binding registration
 	regBinding := binding.Form(Registration{})
 
 	// update Handler for form api
 	m.Get("/nic/update", AuthHandler, regBinding, Register)
+
 	// Website
-	m.Get("/", Index)
-	m.Get("/update", Update)
+	web := NewWeb(config)
+	m.Get("/", web.Index)
+	m.Get("/update", web.Update)
 	// form api handlers
-	m.Post("/", binding.Form(WebNewDomain{}), FormApiDomainNew)
-	m.Post("/update", binding.Form(WebUpdateDomain{}), FormApiDomainUpdate)
+	m.Post("/", binding.Form(WebNewDomain{}), web.FormApiDomainNew)
+	m.Post("/update", binding.Form(WebUpdateDomain{}), web.FormApiDomainUpdate)
 	return m
 }
 
 // The main Server Runner, specify a listen string in the form <net>:<port>,
 // and a database filename.
-func Run(listen, filename string) {
+func Run(config *Config) {
 	log.Println("Starting coolDNS Server")
 
-	db, err := NewSqliteCoolDB(filename)
+	db, err := NewSqliteCoolDB(config.DbFile)
 	if err != nil {
 		log.Fatal("Error Loading db:", err)
 	}
@@ -216,48 +215,20 @@ func Run(listen, filename string) {
 		os.Exit(0)
 	}()
 
-	// preliminary for testing porpuses TODO: remove this
-	err = createDummyUser("doof"+domainsuffix, "12345678", db)
-	if err != nil {
-		log.Println("Error adding user:", err)
-	}
-
 	// Create Metrics Handler
 	var metrics MetricsHandle
-	influxConfig := LoadInfluxConfig()
-	if influxConfig != nil {
-		metrics = NewInfluxMetrics(influxConfig)
+	if config.InfluxConfig != nil {
+		metrics = NewInfluxMetrics(config.InfluxConfig)
 	} else {
 		metrics = NewDummyMetrics()
 	}
 
 	// Run the DNS server
-	go RunDns(listen, db, metrics)
+	go RunDns(config.DnsConfig, db, metrics)
 
-	handler := SetupWeb(db, "./assets", "templates", metrics)
-	err = http.ListenAndServe(":3000", handler)
+	handler := SetupWeb(config.WebConfig, db, metrics)
+	err = http.ListenAndServe(config.WebConfig.Listen, handler)
 	if err != nil {
 		log.Fatal("Server Failed:", err)
 	}
-}
-
-func createDummyUser(name, secret string, db CoolDB) error {
-	a, err := NewAuth(name, secret)
-	if err != nil {
-		return err
-	}
-
-	ok, err := a.CheckAuth(name, secret)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		log.Println("Woha auth didn't match")
-	}
-	err = db.SaveAuth(a)
-	if err != nil {
-		return err
-	}
-	return nil
-
 }

@@ -36,7 +36,12 @@ func createTestServer(t *testing.T) *webTestServer {
 	log.Println("##### TESTING LOG BUFFER #####")
 	t.Log("Database:", f)
 
-	handler := SetupWeb(db, "../assets", "../templates", NewDummyMetrics())
+	// Only supply basic config with domain and Resources
+	config := &WebConfig{
+		Domain:    "ist.nicht.cool.",
+		Resources: "../",
+	}
+	handler := SetupWeb(config, db, NewDummyMetrics())
 	return &webTestServer{httptest.NewServer(handler), logBuf, db, f}
 }
 
