@@ -193,7 +193,9 @@ func SetupWeb(db CoolDB, static, templates string, metric MetricsHandle) http.Ha
 	return m
 }
 
-func Run(filename string) {
+// The main Server Runner, specify a listen string in the form <net>:<port>,
+// and a database filename.
+func Run(listen, filename string) {
 	log.Println("Starting coolDNS Server")
 
 	db, err := NewSqliteCoolDB(filename)
@@ -230,7 +232,7 @@ func Run(filename string) {
 	}
 
 	// Run the DNS server
-	go RunDns(db, metrics)
+	go RunDns(listen, db, metrics)
 
 	handler := SetupWeb(db, "./assets", "templates", metrics)
 	err = http.ListenAndServe(":3000", handler)

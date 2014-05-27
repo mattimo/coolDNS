@@ -100,16 +100,16 @@ func (h *DnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 
 }
 
-func serve(net, name, secret string) {
+func serve(net, listen, name, secret string) {
 	switch name {
 	case "":
-		server := &dns.Server{Pool: false, Addr: ":8053", Net: net, TsigSecret: nil}
+		server := &dns.Server{Pool: false, Addr: listen, Net: net, TsigSecret: nil}
 		err := server.ListenAndServe()
 		if err != nil {
 			log.Printf("Failed to setup the "+net+" server: %s\n", err.Error())
 		}
 	default:
-		server := &dns.Server{Pool: false, Addr: ":8053", Net: net, TsigSecret: map[string]string{name: secret}}
+		server := &dns.Server{Pool: false, Addr: listen, Net: net, TsigSecret: map[string]string{name: secret}}
 		err := server.ListenAndServe()
 		if err != nil {
 			log.Printf("Failed to setup the "+net+" server: %s\n", err.Error())
@@ -117,9 +117,9 @@ func serve(net, name, secret string) {
 	}
 }
 
-func RunDns(db CoolDB, metric MetricsHandle) {
+func RunDns(listen string, db CoolDB, metric MetricsHandle) {
 	h := &DnsHandler{db: db, metric: metric}
 	dns.HandleFunc(domainsuffix, h.handleRequest)
-	go serve("udp", domainsuffix, TsigKey)
-	go serve("tcp", domainsuffix, TsigKey)
+	go serve("udp", listen, domainsuffix, TsigKey)
+	go serve("tcp", listen, domainsuffix, TsigKey)
 }
