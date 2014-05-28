@@ -115,7 +115,7 @@ func (h *dnsHandler) serve(net string) {
 	}
 	err := server.ListenAndServe()
 	if err != nil {
-		log.Fatal("Failed to setup the "+net+" server: %s\n", err.Error())
+		log.Fatalf("Failed to setup the "+net+" server: %s\n", err)
 	}
 }
 
