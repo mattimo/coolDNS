@@ -49,6 +49,25 @@ var dnstestentrylist = []Entry{
 			MxEntry{"mail2.server.bla.com.", 40},
 		},
 	},
+	Entry{
+		Hostname: "dömain.ist.nicht.cool.",
+		Ip4s: []net.IP{
+			net.ParseIP("1.1.1.1"),
+			net.ParseIP("1.1.1.2"),
+			net.ParseIP("1.1.1.3"),
+		},
+		Ip6s: []net.IP{
+			net.ParseIP("fe80::92e6:baff:feca:2fc1"),
+			net.ParseIP("fe80::92e6:baff:feca:2fc2"),
+			net.ParseIP("fe80::92e6:baff:feca:2fc3"),
+		},
+		Txts: []string{"Hello World", "Cruel World"},
+		Mxs: []MxEntry{
+			MxEntry{"mail.server.bla.com.", 20},
+			MxEntry{"mail1.server.bla.com.", 30},
+			MxEntry{"mail2.server.bla.com.", 40},
+		},
+	},
 }
 
 func testDnsReq(port, rrType string, test *Entry) (string, error) {

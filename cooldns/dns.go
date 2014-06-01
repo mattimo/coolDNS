@@ -1,6 +1,7 @@
 package cooldns
 
 import (
+	"code.google.com/p/go.net/idna"
 	"github.com/miekg/dns"
 	"log"
 	"time"
@@ -38,7 +39,14 @@ func (h *dnsHandler) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	for _, question := range r.Question {
-		entry := h.db.GetEntry(question.Name)
+		var entry *Entry
+		// try to convert to puny code
+		qName, err := idna.ToUnicode(question.Name)
+		if err == nil {
+			entry = h.db.GetEntry(qName)
+		} else {
+			entry = h.db.GetEntry(question.Name)
+		}
 		if entry == nil {
 			return
 		}
