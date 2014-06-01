@@ -49,27 +49,22 @@ type WebSuccessHandler func([]string, interface{})
 func (w *Web) Index(db CoolDB, r render.Render) {
 	r.HTML(200, "index", map[string]string{
 		"Rcpublic": w.RcPubKey,
-		"Domain":   w.Domain})
+		"Domain":   "." + w.Domain})
 }
 
 func (w *Web) Update(db CoolDB, r render.Render) {
 	r.HTML(200, "update", map[string]string{
 		"Rcpublic": w.RcPubKey,
-		"Domain":   w.Domain})
+		"Domain":   "." + w.Domain})
 }
 
 func (w *Web) checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
 	ok = false
-	// Check if Hostname is fqdn with needed suffix and a minimum of two
-	// characters as a sub domain
-	if !strings.HasSuffix(n.Hostname, ".") {
-		n.Hostname = n.Hostname + "."
-	}
-	if !strings.HasSuffix(n.Hostname, "."+w.Domain) {
-		n.Hostname = n.Hostname + "." + w.Domain
-	}
-	if len(strings.TrimSuffix(n.Hostname, "."+w.Domain)) < 2 {
-		errors = append(errors, "Sub domain to short")
+	// Check if new domain is valid
+	hok := false
+	n.Hostname, hok = ValidateDomain(n.Hostname, w.Domain)
+	if !hok {
+		errors = append(errors, "Hostname not Valid")
 	}
 	// Check if secret exists
 	if n.Secret == "" {
@@ -93,16 +88,11 @@ func (w *Web) checkNewDomain(n *WebNewDomain) (ok bool, errors []string) {
 
 func (w *Web) checkUpdateDomain(n *WebUpdateDomain) (ok bool, errors []string) {
 	ok = false
-	// Check if Hostname is fqdn with needed suffix and a minimum of two
-	// characters as a sub domain
-	if !strings.HasSuffix(n.Hostname, ".") {
-		n.Hostname = n.Hostname + "."
-	}
-	if !strings.HasSuffix(n.Hostname, "."+w.Domain) {
-		n.Hostname = n.Hostname + "." + w.Domain
-	}
-	if len(strings.TrimSuffix(n.Hostname, "."+w.Domain)) < 2 {
-		errors = append(errors, "Sub domain to short")
+	// Check if new domain is valid
+	hok := false
+	n.Hostname, hok = ValidateDomain(n.Hostname, w.Domain)
+	if !hok {
+		errors = append(errors, "Hostname not Valid")
 	}
 	// Check if secret exists
 	if n.Secret == "" {
@@ -132,7 +122,7 @@ func (w *Web) FormApiDomainNew(db CoolDB,
 		vContent := content.(*WebNewDomain)
 		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+w.Domain)
 		view := &newView{
-			Domain:   w.Domain,
+			Domain:   "." + w.Domain,
 			Rcpublic: w.RcPubKey,
 			Err:      errors,
 			F:        vContent,
@@ -144,7 +134,7 @@ func (w *Web) FormApiDomainNew(db CoolDB,
 		vContent := content.(*WebUpdateDomain)
 		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+w.Domain)
 		view := &updateView{
-			Domain:  w.Domain,
+			Domain:  "." + w.Domain,
 			Success: success,
 			F:       vContent,
 		}
@@ -171,7 +161,7 @@ func (w *Web) FormApiDomainUpdate(db CoolDB,
 		vContent := content.(*WebUpdateDomain)
 		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+w.Domain)
 		view := &updateView{
-			Domain: w.Domain,
+			Domain: "." + w.Domain,
 			Err:    errors,
 			F:      vContent,
 		}
@@ -181,7 +171,7 @@ func (w *Web) FormApiDomainUpdate(db CoolDB,
 		vContent := content.(*WebUpdateDomain)
 		vContent.Hostname = strings.TrimSuffix(vContent.Hostname, "."+w.Domain)
 		view := &updateView{
-			Domain:  w.Domain,
+			Domain:  "." + w.Domain,
 			Success: success,
 			F:       vContent,
 		}
@@ -202,12 +192,16 @@ func fqdn(s string) string {
 	return s
 }
 
-func extractRecords(input string) (exist bool, records []string) {
-	records = strings.Split(input, "\n")
-	for i, r := range records {
-		records[i] = strings.TrimSpace(r)
+func extractRecords(input string) (bool, []string) {
+	records := strings.Split(input, "\n")
+	var newRec []string
+	for _, r := range records {
+		rec := strings.TrimSpace(r)
+		if rec != "" {
+			newRec = append(newRec, rec)
+		}
 	}
-	return len(records) != 0, records
+	return len(newRec) != 0, newRec
 }
 
 func (w *Web) UpdateDomain(db CoolDB,
@@ -326,7 +320,7 @@ func (w *Web) newDomain(db CoolDB,
 			return
 		}
 	}
-	// Check is Domain already exists
+	// Check if Domain already exists
 	if db.GetEntry(n.Hostname) != nil {
 		errHandler(200, []string{"Sorry, Domain already in use"}, &n)
 		return
@@ -362,7 +356,7 @@ func (w *Web) newDomain(db CoolDB,
 		return
 	}
 	update := &WebUpdateDomain{
-		Hostname: strings.TrimSuffix(n.Hostname, w.Domain),
+		Hostname: strings.TrimSuffix(n.Hostname, "."+w.Domain),
 		Secret:   n.Secret,
 	}
 	successHandler([]string{"Creation of new domain " + update.Hostname + " was successful"}, update)

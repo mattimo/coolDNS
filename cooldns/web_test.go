@@ -404,7 +404,7 @@ func TestFormDomainNew(t *testing.T) {
 		}
 		if resp.StatusCode != 200 {
 			t.Log(server.Log.String())
-			t.Errorf("FormNew: Wrong return Code: Got %d, expected %d. \n\tTest: %v",
+			t.Errorf("FormNew: Wrong return Code: Got %d, expected %d. \n\tTest: %#v",
 				resp.StatusCode,
 				200,
 				test)
@@ -415,7 +415,7 @@ func TestFormDomainNew(t *testing.T) {
 		}
 		errMsgs := checkForAlerts(doc)
 		if test.ErrCount != len(errMsgs) {
-			t.Errorf("Should have %d alert-warnings found: %d \nErrors: &v", test.ErrCount, len(errMsgs), errMsgs)
+			t.Errorf("Should have %d alert-warnings found: %d \nErrors: &#v", test.ErrCount, len(errMsgs), errMsgs)
 		}
 
 		// Post Db check if user was actually created
@@ -447,7 +447,7 @@ func TestFormDomainNew(t *testing.T) {
 			}
 		}
 		if t.Failed() {
-			t.Logf("TEST: %v\n", test)
+			t.Logf("TEST: %#v\n", test)
 			t.Log("\tErrMsgs:", errMsgs)
 			t.Log("\t", resp)
 			t.Log(server.Log.String())
